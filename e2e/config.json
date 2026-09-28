@@ -1,0 +1,36 @@
+{
+  "testRunner": "jest",
+  "runnerConfig": "e2e/jest.config.js",
+  "configurations": {
+    "android.emu.debug": {
+      "device": {
+        "type": "android.emulator",
+        "device": { "avdName": "Pixel_6_API_34" }
+      },
+      "app": {
+        "type": "android.apk",
+        "binaryPath": "android/app/build/outputs/apk/debug/app-debug.apk"
+      }
+    },
+    "android.emu.release": {
+      "device": {
+        "type": "android.emulator",
+        "device": { "avdName": "Pixel_6_API_34" }
+      },
+      "app": {
+        "type": "android.apk",
+        "binaryPath": "android/app/build/outputs/apk/release/app-release.apk"
+      }
+    },
+    "ios.sim.debug": {
+      "device": {
+        "type": "ios.simulator",
+        "device": { "type": "iPhone 15 Pro" }
+      },
+      "app": {
+        "type": "ios.app",
+        "binaryPath": "ios/build/Build/Products/Debug-iphonesimulator/HikmahPlayer.app"
+      }
+    }
+  }
+}

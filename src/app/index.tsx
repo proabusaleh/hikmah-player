@@ -1,98 +1,203 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Play, Video } from 'lucide-react-native';
+import {
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { ContinueWatchingSection } from '@/components/common/ContinueWatchingSection';
+import { DownloadButton } from '@/components/common/DownloadButton';
+import { Colors } from '@/constants/colors';
+import { useAudioPlayback } from '@/hooks/useAudioPlayback';
+import { useProgressTracker } from '@/hooks/useProgressTracker';
+import { usePlayerStore } from '@/store/usePlayerStore';
+import { MediaItem } from '@/types/media';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+const DEMO_PLAYLIST: MediaItem[] = [
+  {
+    id: '1',
+    title: 'Surah Al-Fatihah',
+    artistOrSpeaker: 'Mishary Rashid Alafasy',
+    url: 'https://server8.mp3quran.net/afs/001.mp3',
+    duration: 42,
+    type: 'audio',
+    addedAt: Date.now(),
+  },
+  {
+    id: '2',
+    title: 'Surah Al-Ikhlas',
+    artistOrSpeaker: 'Mishary Rashid Alafasy',
+    url: 'https://server8.mp3quran.net/afs/112.mp3',
+    duration: 20,
+    type: 'audio',
+    addedAt: Date.now(),
+  },
+  {
+    id: '3',
+    title: 'Surah Al-Falaq',
+    artistOrSpeaker: 'Mishary Rashid Alafasy',
+    url: 'https://server8.mp3quran.net/afs/113.mp3',
+    duration: 25,
+    type: 'audio',
+    addedAt: Date.now(),
+  },
+];
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const { playMedia } = useAudioPlayback();
+  const { setQueue } = usePlayerStore();
+  const { getResumeTime } = useProgressTracker();
+
+  const handlePlayTrack = (track: MediaItem, index: number) => {
+    setQueue(DEMO_PLAYLIST, index);
+    playMedia(track);
+  };
+
+  const handleContinueWatchingPress = (item: { mediaId: string; title: string; mediaType: 'audio' | 'video'; sourceUrl: string; position: number; speakerOrArtist?: string }) => {
+    if (item.mediaType === 'video') {
+      router.push({
+        pathname: '/player/video',
+        params: {
+          id: item.mediaId,
+          title: item.title,
+          speaker: item.speakerOrArtist,
+          url: item.sourceUrl,
+          resumePosition: String(item.position),
+        },
+      });
+      return;
+    }
+
+    router.push({
+      pathname: '/player',
+      params: {
+        mediaId: item.mediaId,
+        resumePosition: String(item.position),
+      },
+    });
+  };
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <View style={styles.container}>
+      <ContinueWatchingSection
+        variant="horizontal"
+        maxItems={8}
+        onItemPress={handleContinueWatchingPress}
+      />
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+      <Text style={styles.headerTitle}>Featured Recitations</Text>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+      <FlatList
+        data={DEMO_PLAYLIST}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item, index }) => (
+          <TouchableOpacity
+            style={styles.card}
+            onPress={() => handlePlayTrack(item, index)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.iconCircle}>
+              <Play size={18} color={Colors.dark.primary} fill={Colors.dark.primary} />
+            </View>
+            <View style={styles.textContainer}>
+              <Text style={styles.trackTitle}>{item.title}</Text>
+              <Text style={styles.trackArtist}>{item.artistOrSpeaker}</Text>
+            </View>
+            <DownloadButton item={item} />
+          </TouchableOpacity>
+        )}
+      />
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+      <Text style={[styles.headerTitle, styles.sectionSpacer]}>Featured Videos</Text>
+
+      <TouchableOpacity
+        style={styles.videoCard}
+        onPress={() => router.push('/player/video')}
+        activeOpacity={0.8}
+      >
+        <View style={styles.videoIconCircle}>
+          <Video size={20} color={Colors.dark.primary} fill={Colors.dark.primary} />
+        </View>
+        <View style={styles.textContainer}>
+          <Text style={styles.trackTitle}>Hikmah Lecture — The Beauty of Patience</Text>
+          <Text style={styles.trackArtist}>A short reflection on resilience and gratitude.</Text>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: Colors.dark.background,
+    padding: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.dark.text,
+    marginBottom: 16,
+  },
+  sectionSpacer: {
+    marginTop: 20,
+  },
+  listContent: {
+    gap: 12,
+    paddingBottom: 20,
+  },
+  card: {
     flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    backgroundColor: Colors.dark.surface,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
   },
-  heroSection: {
+  videoCard: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.dark.surface,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.dark.card,
     justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  videoIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.dark.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  textContainer: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
   },
-  title: {
-    textAlign: 'center',
+  trackTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.dark.text,
   },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  trackArtist: {
+    fontSize: 13,
+    color: Colors.dark.textMuted,
+    marginTop: 2,
   },
 });

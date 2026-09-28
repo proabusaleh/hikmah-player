@@ -3,5 +3,11 @@
     "source.fixAll": "explicit",
     "source.organizeImports": "explicit",
     "source.sortMembers": "explicit"
+  },
+  "chat.tools.terminal.autoApprove": {
+    "/^npx expo start -c$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
   }
 }

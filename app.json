@@ -1,42 +1,82 @@
 {
   "expo": {
-    "name": "hikmah-player",
+    "name": "Hikmah Player",
     "slug": "hikmah-player",
-    "version": "1.0.0",
-    "orientation": "portrait",
+    "version": "1.0.1",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "hikmahplayer",
     "userInterfaceStyle": "automatic",
-    "ios": {
-      "icon": "./assets/expo.icon"
-    },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "monochromeImage": "./assets/images/android-icon-monochrome.png",
+        "backgroundColor": "#0F172A"
       },
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "package": "com.hikmah.player",
+      "versionCode": 2,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "android.permission.WAKE_LOCK",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F172A"
         }
-      ]
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-video",
+        {
+          "supportsBackgroundPlayback": true,
+          "supportsPictureInPicture": true
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Hikmah Player to access your videos and audio so you can play them in the app.",
+          "savePhotosPermission": "Allow Hikmah Player to save media to your library.",
+          "granularPermissions": [
+            "audio",
+            "video"
+          ]
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#10B981"
+        }
+      ],
+      "expo-localization"
     ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    },
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "tsconfigPaths": true
     }
   }
 }
