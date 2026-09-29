@@ -9,7 +9,8 @@
     "@react-native-community/slider": "5.2.0",
     "@shopify/flash-list": "2.0.2",
     "expo": "~57.0.25",
-    "expo-av": "^16.0.8",
+    "expo-asset": "~57.0.18",
+    "expo-audio": "~57.0.5",
     "expo-constants": "~57.0.19",
     "expo-crypto": "~57.0.3",
     "expo-dev-client": "~57.0.19",
@@ -73,14 +74,5 @@
     "test:e2e": "detox test --configuration android.emu.debug",
     "test:ci": "jest --ci --coverage --maxWorkers=2"
   },
-  "private": true,
-  "expo": {
-    "doctor": {
-      "reactNativeDirectoryCheck": {
-        "exclude": [
-          "expo-av"
-        ]
-      }
-    }
-  }
+  "private": true
 }

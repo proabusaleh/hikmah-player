@@ -36,8 +36,12 @@ export default function SplashScreen() {
     }).start();
 
     const timer = setTimeout(async () => {
-      const hasSeenOnboarding = await StorageService.getItem<boolean>('@hikmah_onboarding_done');
-      router.replace(hasSeenOnboarding ? '/' : '/onboarding');
+      try {
+        const hasSeenOnboarding = await StorageService.getItem<boolean>('@hikmah_onboarding_done');
+        router.replace(hasSeenOnboarding ? '/(tabs)' : '/onboarding');
+      } catch {
+        router.replace('/(tabs)');
+      }
     }, 2500);
 
     return () => clearTimeout(timer);

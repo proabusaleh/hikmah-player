@@ -2,7 +2,7 @@
 
 ## Pre-Build Checks
 - [ ] All TypeScript errors resolved (`npx tsc --noEmit`)
-- [ ] `npx expo-doctor` config check passes (known exception: pre-existing `expo-av` unmaintained notice)
+- [ ] `npx expo-doctor` config check passes
 - [ ] All `console.*` calls are `__DEV__`-guarded (perf monitor, lifecycle logs)
 - [ ] `EXPO_PUBLIC_ENV` set via `eas.json` production profile
 - [ ] App icon `./assets/images/icon.png` (512×512 PNG, no rounded corners)

@@ -1,42 +1,32 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ─── Mock Expo Modules ───────────────────────────────
-jest.mock('expo-av', () => {
-  const makeSound = () => ({
-    playAsync: jest.fn().mockResolvedValue(undefined),
-    pauseAsync: jest.fn().mockResolvedValue(undefined),
-    stopAsync: jest.fn().mockResolvedValue(undefined),
-    unloadAsync: jest.fn().mockResolvedValue(undefined),
-    setPositionAsync: jest.fn().mockResolvedValue(undefined),
-    setRateAsync: jest.fn().mockResolvedValue(undefined),
-    setVolumeAsync: jest.fn().mockResolvedValue(undefined),
-    setIsMutedAsync: jest.fn().mockResolvedValue(undefined),
-    getStatusAsync: jest.fn().mockResolvedValue({
-      isLoaded: true,
-      isPlaying: false,
-      positionMillis: 0,
-      durationMillis: 120000,
-      isBuffering: false,
-      rate: 1.0,
-      volume: 1.0,
-      isMuted: false,
-    }),
-    setOnPlaybackStatusUpdate: jest.fn(),
+jest.mock('expo-audio', () => {
+  const makePlayer = () => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    seekTo: jest.fn().mockResolvedValue(undefined),
+    replace: jest.fn(),
+    remove: jest.fn(),
+    setPlaybackRate: jest.fn(),
+    currentTime: 0,
+    duration: 120,
+    playing: false,
+    paused: true,
+    isBuffering: false,
+    isLoaded: true,
+    volume: 1.0,
+    muted: false,
+    loop: false,
+    playbackRate: 1.0,
   });
 
   return {
-    Audio: {
-      setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
-      Sound: {
-        // Fresh sound mocks per call so tests can assert per-track behavior
-        createAsync: jest.fn(async () => ({
-          sound: makeSound(),
-          status: { isLoaded: true, durationMillis: 120000 },
-        })),
-      },
-    },
-    InterruptionModeAndroid: { DoNotMix: 1 },
-    InterruptionModeIOS: { DoNotMix: 1 },
+    setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+    setIsAudioActiveAsync: jest.fn().mockResolvedValue(undefined),
+    // Fresh player mocks per call so tests can assert per-track behavior
+    createAudioPlayer: jest.fn(() => makePlayer()),
+    useAudioPlayer: jest.fn(() => makePlayer()),
   };
 });
 

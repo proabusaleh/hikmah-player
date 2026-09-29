@@ -68,7 +68,7 @@ export default function OnboardingScreen() {
 
   const completeOnboarding = async () => {
     await StorageService.setItem('@hikmah_onboarding_done', true);
-    router.replace('/');
+    router.replace('/(tabs)');
   };
 
   const handleNext = () => {

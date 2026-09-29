@@ -49,19 +49,19 @@ export const useNotifications = () => {
           break;
 
         case 'download_complete':
-          router.navigate('/downloads');
+          router.navigate('/(tabs)/downloads');
           break;
 
         case 'download_failed':
-          router.navigate('/downloads');
+          router.navigate('/(tabs)/downloads');
           break;
 
         case 'download_summary':
-          router.navigate('/downloads');
+          router.navigate('/(tabs)/downloads');
           break;
 
         case 'new_content':
-          router.navigate('/library');
+          router.navigate('/(tabs)/library');
           break;
 
         case 'playlist_update':
@@ -74,7 +74,7 @@ export const useNotifications = () => {
           break;
 
         default:
-          router.navigate('/');
+          router.navigate('/(tabs)');
       }
     },
     [router]

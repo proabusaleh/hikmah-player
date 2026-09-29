@@ -1,4 +1,4 @@
-import { Audio, AVPlaybackStatus, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { Platform } from 'react-native';
 
 import type { MediaItem } from '@/types/media';
@@ -35,10 +35,15 @@ export type AudioEventType =
 export type AudioEventCallback = (event: AudioEventType, data?: unknown) => void;
 
 class AudioService {
-  private sound: Audio.Sound | null = null;
+  private player: AudioPlayer | null = null;
   private isInitialized = false;
   private listeners = new Set<AudioEventCallback>();
   private currentUri: string | null = null;
+  private volume = 1.0;
+  private isMuted = false;
+  private rate = 1.0;
+  private endMonitor: ReturnType<typeof setInterval> | null = null;
+  private endEmittedForUri: string | null = null;
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
@@ -52,14 +57,12 @@ class AudioService {
     }
 
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        staysActiveInBackground: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-        interruptionModeIOS: InterruptionModeIOS.DoNotMix,
-        interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
+      await setAudioModeAsync({
+        allowsRecording: false,
+        shouldPlayInBackground: true,
+        playsInSilentMode: true,
+        shouldRouteThroughEarpiece: false,
+        interruptionMode: 'doNotMix',
       });
       this.isInitialized = true;
       if (__DEV__) {
@@ -86,30 +89,52 @@ class AudioService {
     });
   }
 
-  private onPlaybackStatusUpdate = (status: AVPlaybackStatus): void => {
-    if (!status.isLoaded) {
-      if (status.error) {
-        console.error(`[AudioService] Playback error: ${status.error}`);
-        this.emit('error', status.error);
+  private startEndMonitor(): void {
+    this.stopEndMonitor();
+    this.endMonitor = setInterval(() => {
+      const player = this.player;
+      if (!player || !this.currentUri) return;
+      try {
+        const duration = player.duration ?? 0;
+        const position = player.currentTime ?? 0;
+        // expo-audio stays paused at the end instead of auto-resetting.
+        if (
+          duration > 0 &&
+          !player.playing &&
+          position >= duration - 0.25 &&
+          this.endEmittedForUri !== this.currentUri
+        ) {
+          this.endEmittedForUri = this.currentUri;
+          this.emit('trackEnd', {
+            position: position * 1000,
+            duration: duration * 1000,
+          });
+        } else if (player.playing) {
+          this.endEmittedForUri = null;
+        }
+      } catch {
+        // Ignore polling errors.
       }
-      return;
-    }
+    }, 500);
+  }
 
-    if (status.didJustFinish) {
-      this.emit('trackEnd', {
-        position: status.positionMillis,
-        duration: status.durationMillis,
-      });
-      return;
+  private stopEndMonitor(): void {
+    if (this.endMonitor) {
+      clearInterval(this.endMonitor);
+      this.endMonitor = null;
     }
+  }
 
-    if (status.isBuffering) {
-      this.emit('buffering', {
-        position: status.positionMillis,
-        duration: status.durationMillis,
-      });
+  private applyPersistedSettings(): void {
+    if (!this.player) return;
+    try {
+      this.player.volume = this.volume;
+      this.player.muted = this.isMuted;
+      this.player.setPlaybackRate(this.rate);
+    } catch {
+      // Ignore: player may not be ready yet.
     }
-  };
+  }
 
   async loadTrack(item: MediaItem, autoPlay = true): Promise<{ duration: number }> {
     await this.initialize();
@@ -119,23 +144,20 @@ class AudioService {
 
       this.emit('buffering');
       this.currentUri = item.url;
+      this.endEmittedForUri = null;
 
-      const { sound, status } = await Audio.Sound.createAsync(
-        { uri: item.url },
-        {
-          shouldPlay: autoPlay,
-          progressUpdateIntervalMillis: 250,
-          rate: 1.0,
-          shouldCorrectPitch: true,
-        },
-        this.onPlaybackStatusUpdate
-      );
+      this.player = createAudioPlayer({ uri: item.url }, { updateInterval: 250 });
+      this.player.loop = false;
+      this.applyPersistedSettings();
 
-      this.sound = sound;
+      if (autoPlay) {
+        this.player.play();
+        this.emit('play');
+      }
 
-      if (autoPlay) this.emit('play');
+      this.startEndMonitor();
 
-      const duration = status.isLoaded ? status.durationMillis || 0 : 0;
+      const duration = (this.player.duration ?? 0) * 1000;
       return { duration };
     } catch (error) {
       console.error('[AudioService] Load failed:', error);
@@ -145,56 +167,100 @@ class AudioService {
   }
 
   async play(): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.playAsync();
-    this.emit('play');
-  }
-
-  async pause(): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.pauseAsync();
-    this.emit('pause');
-  }
-
-  async stop(): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.stopAsync();
-    this.emit('stop');
-  }
-
-  async seek(positionMs: number): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.setPositionAsync(Math.max(0, positionMs));
-    this.emit('seek', { position: positionMs });
-  }
-
-  async seekRelative(deltaMs: number): Promise<void> {
-    if (!this.sound) return;
-    const status = await this.sound.getStatusAsync();
-    if (status.isLoaded) {
-      const target = Math.max(
-        0,
-        Math.min(status.positionMillis + deltaMs, status.durationMillis || 0)
-      );
-      await this.seek(target);
+    if (!this.player) return;
+    try {
+      const duration = this.player.duration ?? 0;
+      const position = this.player.currentTime ?? 0;
+      // expo-audio does not auto-reset on finish: rewind first when at the end.
+      if (duration > 0 && position >= duration - 0.25) {
+        await this.player.seekTo(0);
+        this.endEmittedForUri = null;
+      }
+      this.player.play();
+      this.emit('play');
+    } catch (error) {
+      console.error('[AudioService] Play failed:', error);
+      this.emit('error', error);
     }
   }
 
-  async setRate(rate: number, shouldCorrectPitch = true): Promise<void> {
-    if (!this.sound) return;
+  async pause(): Promise<void> {
+    if (!this.player) return;
+    try {
+      this.player.pause();
+      this.emit('pause');
+    } catch (error) {
+      console.error('[AudioService] Pause failed:', error);
+    }
+  }
+
+  async stop(): Promise<void> {
+    if (!this.player) return;
+    try {
+      this.player.pause();
+      await this.player.seekTo(0);
+      this.emit('stop');
+    } catch (error) {
+      console.error('[AudioService] Stop failed:', error);
+    }
+  }
+
+  async seek(positionMs: number): Promise<void> {
+    if (!this.player) return;
+    try {
+      await this.player.seekTo(Math.max(0, positionMs) / 1000);
+      this.endEmittedForUri = null;
+      this.emit('seek', { position: positionMs });
+    } catch (error) {
+      console.error('[AudioService] Seek failed:', error);
+    }
+  }
+
+  async seekRelative(deltaMs: number): Promise<void> {
+    if (!this.player) return;
+    try {
+      const position = (this.player.currentTime ?? 0) * 1000;
+      const duration = (this.player.duration ?? 0) * 1000;
+      const target = Math.max(0, Math.min(position + deltaMs, duration));
+      await this.seek(target);
+    } catch (error) {
+      console.error('[AudioService] Relative seek failed:', error);
+    }
+  }
+
+  async setRate(rate: number, _shouldCorrectPitch = true): Promise<void> {
+    if (!this.player) {
+      this.rate = Math.max(0.25, Math.min(4.0, rate));
+      return;
+    }
     const clampedRate = Math.max(0.25, Math.min(4.0, rate));
-    await this.sound.setRateAsync(clampedRate, shouldCorrectPitch);
+    this.rate = clampedRate;
+    try {
+      this.player.setPlaybackRate(clampedRate);
+    } catch (error) {
+      console.error('[AudioService] Set rate failed:', error);
+    }
   }
 
   async setVolume(volume: number): Promise<void> {
-    if (!this.sound) return;
     const clamped = Math.max(0, Math.min(1, volume));
-    await this.sound.setVolumeAsync(clamped);
+    this.volume = clamped;
+    if (!this.player) return;
+    try {
+      this.player.volume = clamped;
+    } catch (error) {
+      console.error('[AudioService] Set volume failed:', error);
+    }
   }
 
   async setMuted(isMuted: boolean): Promise<void> {
-    if (!this.sound) return;
-    await this.sound.setIsMutedAsync(isMuted);
+    this.isMuted = isMuted;
+    if (!this.player) return;
+    try {
+      this.player.muted = isMuted;
+    } catch (error) {
+      console.error('[AudioService] Set muted failed:', error);
+    }
   }
 
   async getStatus(): Promise<{
@@ -206,30 +272,32 @@ class AudioService {
     volume: number;
     isMuted: boolean;
   } | null> {
-    if (!this.sound) return null;
+    if (!this.player) return null;
 
-    const status = await this.sound.getStatusAsync();
-    if (!status.isLoaded) return null;
-
-    return {
-      isPlaying: status.isPlaying,
-      position: status.positionMillis,
-      duration: status.durationMillis || 0,
-      isBuffering: status.isBuffering,
-      rate: status.rate,
-      volume: status.volume,
-      isMuted: status.isMuted,
-    };
+    try {
+      return {
+        isPlaying: this.player.playing,
+        position: (this.player.currentTime ?? 0) * 1000,
+        duration: (this.player.duration ?? 0) * 1000,
+        isBuffering: this.player.isBuffering ?? false,
+        rate: this.player.playbackRate ?? this.rate,
+        volume: this.player.volume ?? this.volume,
+        isMuted: this.player.muted ?? this.isMuted,
+      };
+    } catch {
+      return null;
+    }
   }
 
   async unload(): Promise<void> {
-    if (this.sound) {
+    this.stopEndMonitor();
+    if (this.player) {
       try {
-        await this.sound.unloadAsync();
+        this.player.remove();
       } catch {
         // Ignore unload errors.
       }
-      this.sound = null;
+      this.player = null;
       this.currentUri = null;
     }
   }

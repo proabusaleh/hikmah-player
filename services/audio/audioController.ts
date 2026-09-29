@@ -1,4 +1,4 @@
-import { Audio, AVPlaybackStatus } from 'expo-av';
+import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 
 import { MediaItem, PlaybackStatus } from '@/types/media';
 
@@ -11,62 +11,70 @@ type StatusUpdateCallback = (
 ) => void;
 
 class AudioController {
-  private soundInstance: Audio.Sound | null = null;
+  private player: AudioPlayer | null = null;
   private onStatusUpdateCallback: StatusUpdateCallback | null = null;
   private currentUrl: string | null = null;
+  private endMonitor: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
-    configureAudioEngine();
+    void configureAudioEngine();
   }
 
   public setStatusUpdateListener(callback: StatusUpdateCallback) {
     this.onStatusUpdateCallback = callback;
   }
 
-  private handlePlaybackStatusUpdate = (status: AVPlaybackStatus) => {
-    if (!status.isLoaded) {
-      if (status.error) {
-        console.error(`[AudioController] Error: ${status.error}`);
-        this.onStatusUpdateCallback?.('error', 0, 0);
+  private startEndMonitor(): void {
+    this.stopEndMonitor();
+    this.endMonitor = setInterval(() => {
+      const player = this.player;
+      if (!player) return;
+      try {
+        const duration = (player.duration ?? 0) * 1000;
+        const position = (player.currentTime ?? 0) * 1000;
+        if (duration <= 0) return;
+        if (!player.playing && position >= duration - 250) {
+          this.onStatusUpdateCallback?.('stopped', duration, duration);
+          this.stopEndMonitor();
+        } else if (player.isBuffering) {
+          this.onStatusUpdateCallback?.('buffering', position, duration);
+        } else if (player.playing) {
+          this.onStatusUpdateCallback?.('playing', position, duration);
+        } else {
+          this.onStatusUpdateCallback?.('paused', position, duration);
+        }
+      } catch {
+        // Ignore polling errors.
       }
-      return;
-    }
+    }, 500);
+  }
 
-    const duration = status.durationMillis || 0;
-    const position = status.positionMillis || 0;
-
-    if (status.didJustFinish) {
-      this.onStatusUpdateCallback?.('stopped', duration, duration);
-      return;
+  private stopEndMonitor(): void {
+    if (this.endMonitor) {
+      clearInterval(this.endMonitor);
+      this.endMonitor = null;
     }
-
-    if (status.isBuffering) {
-      this.onStatusUpdateCallback?.('buffering', position, duration);
-    } else if (status.isPlaying) {
-      this.onStatusUpdateCallback?.('playing', position, duration);
-    } else {
-      this.onStatusUpdateCallback?.('paused', position, duration);
-    }
-  };
+  }
 
   public async loadAndPlay(item: MediaItem): Promise<void> {
     try {
-      if (this.soundInstance) {
-        await this.soundInstance.unloadAsync();
-        this.soundInstance.setOnPlaybackStatusUpdate(null);
-        this.soundInstance = null;
+      if (this.player) {
+        try {
+          this.player.remove();
+        } catch {
+          // Ignore unload errors.
+        }
+        this.player = null;
       }
+      this.stopEndMonitor();
 
       this.onStatusUpdateCallback?.('buffering', 0, 0);
       this.currentUrl = item.url;
 
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: item.url },
-        { shouldPlay: true, progressUpdateIntervalMillis: 500 },
-        this.handlePlaybackStatusUpdate
-      );
-
-      this.soundInstance = sound;
+      this.player = createAudioPlayer({ uri: item.url }, { updateInterval: 500 });
+      this.player.loop = false;
+      this.player.play();
+      this.startEndMonitor();
     } catch (error) {
       console.error('[AudioController] Failed to load media:', error);
       this.onStatusUpdateCallback?.('error', 0, 0);
@@ -74,33 +82,55 @@ class AudioController {
   }
 
   public async play(): Promise<void> {
-    if (this.soundInstance) {
-      await this.soundInstance.playAsync();
+    if (!this.player) return;
+    try {
+      const duration = this.player.duration ?? 0;
+      const position = this.player.currentTime ?? 0;
+      if (duration > 0 && position >= duration - 0.25) {
+        await this.player.seekTo(0);
+      }
+      this.player.play();
+    } catch (error) {
+      console.error('[AudioController] Play failed:', error);
     }
   }
 
   public async pause(): Promise<void> {
-    if (this.soundInstance) {
-      await this.soundInstance.pauseAsync();
+    if (!this.player) return;
+    try {
+      this.player.pause();
+    } catch (error) {
+      console.error('[AudioController] Pause failed:', error);
     }
   }
 
   public async seek(positionMs: number): Promise<void> {
-    if (this.soundInstance) {
-      await this.soundInstance.setPositionAsync(positionMs);
+    if (!this.player) return;
+    try {
+      await this.player.seekTo(Math.max(0, positionMs) / 1000);
+    } catch (error) {
+      console.error('[AudioController] Seek failed:', error);
     }
   }
 
   public async setRate(speed: number): Promise<void> {
-    if (this.soundInstance) {
-      await this.soundInstance.setRateAsync(speed, true);
+    if (!this.player) return;
+    try {
+      this.player.setPlaybackRate(Math.max(0.25, Math.min(4.0, speed)));
+    } catch (error) {
+      console.error('[AudioController] Set rate failed:', error);
     }
   }
 
   public async unload(): Promise<void> {
-    if (this.soundInstance) {
-      await this.soundInstance.unloadAsync();
-      this.soundInstance = null;
+    this.stopEndMonitor();
+    if (this.player) {
+      try {
+        this.player.remove();
+      } catch {
+        // Ignore unload errors.
+      }
+      this.player = null;
       this.currentUrl = null;
     }
   }

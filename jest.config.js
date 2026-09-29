@@ -3,7 +3,7 @@ const config = {
   preset: 'jest-expo',
   setupFilesAfterEnv: ['./jest.setup.ts'],
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|lucide-react-native|@shopify/flash-list|@react-native-async-storage|expo-av|expo-video|expo-image|expo-file-system|expo-notifications|expo-screen-orientation|expo-localization|expo-crypto|expo-device|expo-media-library|i18next|react-i18next)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|lucide-react-native|@shopify/flash-list|@react-native-async-storage|expo-audio|expo-video|expo-image|expo-file-system|expo-notifications|expo-screen-orientation|expo-localization|expo-crypto|expo-device|expo-media-library|i18next|react-i18next)',
   ],
   moduleNameMapper: {
     '^@/components/(.*)$': '<rootDir>/src/components/$1',

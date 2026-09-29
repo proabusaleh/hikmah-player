@@ -56,9 +56,10 @@
         }
       ],
       [
-        "expo-av",
+        "expo-audio",
         {
-          "microphonePermission": false
+          "microphonePermission": false,
+          "enableBackgroundPlayback": true
         }
       ],
       [
@@ -86,7 +87,9 @@
           "color": "#10B981"
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-audio",
+      "expo-asset"
     ],
     "extra": {
       "router": {},

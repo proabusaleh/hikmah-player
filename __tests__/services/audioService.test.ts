@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 import { audioService } from '@/services/audio/audioService';
 import { MediaItem } from '@/types/media';
@@ -13,11 +13,11 @@ const mockTrack: MediaItem = {
   addedAt: Date.now(),
 };
 
-const createAsyncMock = Audio.Sound.createAsync as jest.Mock;
+const createPlayerMock = createAudioPlayer as jest.Mock;
+const setAudioModeMock = setAudioModeAsync as jest.Mock;
 
-const lastSound = async () => {
-  const result = await createAsyncMock.mock.results[createAsyncMock.mock.calls.length - 1].value;
-  return result.sound;
+const lastPlayer = () => {
+  return createPlayerMock.mock.results[createPlayerMock.mock.calls.length - 1].value;
 };
 
 describe('AudioService', () => {
@@ -33,10 +33,10 @@ describe('AudioService', () => {
   describe('initialize', () => {
     it('should configure audio mode on first call', async () => {
       await audioService.initialize();
-      expect(Audio.setAudioModeAsync).toHaveBeenCalledWith(
+      expect(setAudioModeMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          staysActiveInBackground: true,
-          playsInSilentModeIOS: true,
+          shouldPlayInBackground: true,
+          playsInSilentMode: true,
         })
       );
     });
@@ -44,34 +44,36 @@ describe('AudioService', () => {
     it('should not re-initialize if already initialized', async () => {
       await audioService.initialize();
       await audioService.initialize();
-      expect(Audio.setAudioModeAsync).toHaveBeenCalledTimes(1);
+      expect(setAudioModeMock).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('loadTrack', () => {
-    it('should create a sound instance and play', async () => {
+    it('should create a player instance and play', async () => {
       const result = await audioService.loadTrack(mockTrack, true);
 
-      expect(createAsyncMock).toHaveBeenCalledWith(
+      expect(createPlayerMock).toHaveBeenCalledWith(
         { uri: mockTrack.url },
-        expect.objectContaining({ shouldPlay: true }),
-        expect.any(Function)
+        expect.objectContaining({ updateInterval: 250 })
       );
+      expect(lastPlayer().play).toHaveBeenCalled();
       expect(result.duration).toBe(120000);
     });
 
-    it('should unload previous track before loading new one', async () => {
+    it('should remove previous player before loading new one', async () => {
       await audioService.loadTrack(mockTrack);
-      const firstSound = await lastSound();
+      const firstPlayer = lastPlayer();
 
       await audioService.loadTrack({ ...mockTrack, id: 'test-2' });
 
-      expect(firstSound.unloadAsync).toHaveBeenCalled();
-      expect(createAsyncMock).toHaveBeenCalledTimes(2);
+      expect(firstPlayer.remove).toHaveBeenCalled();
+      expect(createPlayerMock).toHaveBeenCalledTimes(2);
     });
 
     it('should emit error event on load failure', async () => {
-      createAsyncMock.mockRejectedValueOnce(new Error('Network error'));
+      createPlayerMock.mockImplementationOnce(() => {
+        throw new Error('Network error');
+      });
 
       const listener = jest.fn();
       audioService.addListener(listener);
@@ -88,30 +90,30 @@ describe('AudioService', () => {
 
     it('should play', async () => {
       await audioService.play();
-      expect((await lastSound()).playAsync).toHaveBeenCalled();
+      expect(lastPlayer().play).toHaveBeenCalled();
     });
 
     it('should pause', async () => {
       await audioService.pause();
-      expect((await lastSound()).pauseAsync).toHaveBeenCalled();
+      expect(lastPlayer().pause).toHaveBeenCalled();
     });
 
-    it('should seek to position', async () => {
+    it('should seek to position (ms converted to seconds)', async () => {
       await audioService.seek(30000);
-      expect((await lastSound()).setPositionAsync).toHaveBeenCalledWith(30000);
+      expect(lastPlayer().seekTo).toHaveBeenCalledWith(30);
     });
 
     it('should set playback rate', async () => {
       await audioService.setRate(1.5);
-      expect((await lastSound()).setRateAsync).toHaveBeenCalledWith(1.5, true);
+      expect(lastPlayer().setPlaybackRate).toHaveBeenCalledWith(1.5);
     });
 
     it('should clamp rate between 0.25 and 4.0', async () => {
       await audioService.setRate(10);
-      expect((await lastSound()).setRateAsync).toHaveBeenCalledWith(4.0, true);
+      expect(lastPlayer().setPlaybackRate).toHaveBeenCalledWith(4.0);
 
       await audioService.setRate(0.01);
-      expect((await lastSound()).setRateAsync).toHaveBeenCalledWith(0.25, true);
+      expect(lastPlayer().setPlaybackRate).toHaveBeenCalledWith(0.25);
     });
   });
 
