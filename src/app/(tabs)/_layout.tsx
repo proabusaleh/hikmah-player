@@ -1,11 +1,10 @@
-import { Tabs, useRouter } from 'expo-router';
+import { Link, Tabs } from 'expo-router';
 import { DownloadCloud, Heart, Home, Library, Search, Settings } from 'lucide-react-native';
 import { TouchableOpacity } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 
 export default function TabLayout() {
-  const router = useRouter();
   return (
     <Tabs
       screenOptions={{
@@ -40,13 +39,11 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => router.push('/search')}
-              style={{ marginRight: 12 }}
-              activeOpacity={0.7}
-            >
-              <Search size={22} color={Colors.secondary} />
-            </TouchableOpacity>
+            <Link href="/search" asChild>
+              <TouchableOpacity style={{ marginRight: 12 }} activeOpacity={0.7}>
+                <Search size={22} color={Colors.secondary} />
+              </TouchableOpacity>
+            </Link>
           ),
         }}
       />

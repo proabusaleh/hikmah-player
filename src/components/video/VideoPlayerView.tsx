@@ -23,7 +23,7 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({ title, videoUr
   const router = useRouter();
   const videoRef = useRef<VideoView>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(1));
 
   const { isFullscreen, toggleFullscreen, resetToPortrait } = useScreenOrientation();
   const [isFullscreenVideo, setIsFullscreenVideo] = useState(false);
@@ -54,9 +54,9 @@ export const VideoPlayerView: React.FC<VideoPlayerViewProps> = ({ title, videoUr
 
   useEffect(() => {
     if (initialTime > 0 && player) {
-      player.currentTime = initialTime;
+      seekTo(initialTime);
     }
-  }, [player, initialTime]);
+  }, [player, initialTime, seekTo]);
 
   useEffect(() => {
     if (!controlsVisible || !isPlaying || settingsVisible || isLocked) {

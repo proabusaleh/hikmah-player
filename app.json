@@ -13,18 +13,36 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png",
         "backgroundColor": "#0F172A"
       },
-      "package": "com.hikmah.player",
+      "package": "com.hikmah.media",
       "versionCode": 2,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.WAKE_LOCK",
-        "android.permission.POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_MEDIA_VIDEO"
       ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.hikmah.media",
+      "buildNumber": "2",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "Hikmah Player does not record audio."
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/855a9d26-1a5c-47ae-aa27-ea0794642614"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "plugins": [
       "expo-router",
@@ -71,12 +89,15 @@
       "expo-localization"
     ],
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "your-eas-project-id"
+        "projectId": "855a9d26-1a5c-47ae-aa27-ea0794642614"
       }
     },
     "experiments": {
-      "tsconfigPaths": true
-    }
+      "tsconfigPaths": true,
+      "typedRoutes": true
+    },
+    "owner": "proabusaleh"
   }
 }

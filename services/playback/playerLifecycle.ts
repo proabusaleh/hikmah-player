@@ -28,7 +28,9 @@ class PlayerLifecycleManager {
     this.setupAppStateListener();
     this.setupMemoryWarningListener();
     this.setupOrientationListener();
-    console.log('[PlayerLifecycle] Initialized');
+    if (__DEV__) {
+      console.log('[PlayerLifecycle] Initialized');
+    }
   }
 
   /**
@@ -51,7 +53,9 @@ class PlayerLifecycleManager {
       clearTimeout(this.orientationChangeTimeout);
       this.orientationChangeTimeout = null;
     }
-    console.log('[PlayerLifecycle] Destroyed');
+    if (__DEV__) {
+      console.log('[PlayerLifecycle] Destroyed');
+    }
   }
 
   // ── App State (Background/Foreground) ──
@@ -153,7 +157,9 @@ class PlayerLifecycleManager {
 
     this.orientationChangeTimeout = setTimeout(() => {
       const isLandscape = window.width > window.height;
-      console.log(`[PlayerLifecycle] Orientation: ${isLandscape ? 'Landscape' : 'Portrait'}`);
+      if (__DEV__) {
+        console.log(`[PlayerLifecycle] Orientation: ${isLandscape ? 'Landscape' : 'Portrait'}`);
+      }
 
       // Notify store about orientation for UI adjustments
       // (VideoPlayerView reads this via useScreenOrientation hook)

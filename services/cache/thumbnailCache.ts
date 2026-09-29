@@ -21,9 +21,13 @@ export const ThumbnailCache = {
    * Initialize cache directory
    */
   async initialize(): Promise<void> {
-    const dirInfo = await FileSystem.getInfoAsync(CACHE_DIR);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
+    try {
+      const dirInfo = await FileSystem.getInfoAsync(CACHE_DIR);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(CACHE_DIR, { intermediates: true });
+      }
+    } catch {
+      // Cache is non-critical: never let it crash startup.
     }
   },
 

@@ -44,24 +44,24 @@ export const useNotifications = () => {
           } else if (actionId === 'NEXT') {
             void player.nextTrack();
           } else {
-            router.push('/player');
+            router.navigate('/player');
           }
           break;
 
         case 'download_complete':
-          router.push('/(tabs)/downloads');
+          router.navigate('/downloads');
           break;
 
         case 'download_failed':
-          router.push('/(tabs)/downloads');
+          router.navigate('/downloads');
           break;
 
         case 'download_summary':
-          router.push('/(tabs)/downloads');
+          router.navigate('/downloads');
           break;
 
         case 'new_content':
-          router.push('/(tabs)/library');
+          router.navigate('/library');
           break;
 
         case 'playlist_update':
@@ -74,7 +74,7 @@ export const useNotifications = () => {
           break;
 
         default:
-          router.push('/(tabs)');
+          router.navigate('/');
       }
     },
     [router]

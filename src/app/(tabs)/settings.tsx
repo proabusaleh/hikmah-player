@@ -15,15 +15,17 @@ export default function SettingsScreen() {
   const { config, loadConfig, updateConfig, networkState, currentQuality } =
     useSmartPlaybackStore();
 
-  const [notificationsOn, setNotificationsOn] = useState(true);
+  const [notificationsOn, setNotificationsOn] = useState(() => NotificationService.isEnabled());
   const [systemPermission, setSystemPermission] = useState(false);
   const { t, i18n } = useTranslation();
   const languages = getSupportedLanguages();
 
   useEffect(() => {
     void loadConfig();
-    setNotificationsOn(NotificationService.isEnabled());
-    void NotificationService.getPermissionStatus().then(setSystemPermission);
+    void NotificationService.getPermissionStatus().then((granted) => {
+      setSystemPermission(granted);
+      setNotificationsOn(NotificationService.isEnabled());
+    });
   }, [loadConfig]);
 
   const handleMasterToggle = (value: boolean) => {

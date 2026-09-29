@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Animated,
     Modal,
@@ -27,7 +27,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   title,
   snapHeight,
 }) => {
-  const translateY = useRef(new Animated.Value(height)).current;
+  const [translateY] = useState(() => new Animated.Value(height));
   const sheetHeight = snapHeight ? Math.min(height, snapHeight) : height;
 
   useEffect(() => {

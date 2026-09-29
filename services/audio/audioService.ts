@@ -45,7 +45,9 @@ class AudioService {
 
     if (Platform.OS === 'web') {
       this.isInitialized = true;
-      console.log('[AudioService] Web platform detected; skipping native audio init');
+      if (__DEV__) {
+        console.log('[AudioService] Web platform detected; skipping native audio init');
+      }
       return;
     }
 
@@ -60,7 +62,9 @@ class AudioService {
         interruptionModeAndroid: InterruptionModeAndroid.DoNotMix,
       });
       this.isInitialized = true;
-      console.log('[AudioService] Initialized successfully');
+      if (__DEV__) {
+        console.log('[AudioService] Initialized successfully');
+      }
     } catch (error) {
       console.warn('[AudioService] Initialization failed; continuing in non-native mode:', error);
       this.isInitialized = true;

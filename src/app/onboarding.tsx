@@ -52,7 +52,8 @@ const PAGES: OnboardingPage[] = [
 export default function OnboardingScreen() {
   const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const [scrollX] = useState(() => new Animated.Value(0));
+  const listRef = useRef<FlatList>(null);
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -67,7 +68,15 @@ export default function OnboardingScreen() {
 
   const completeOnboarding = async () => {
     await StorageService.setItem('@hikmah_onboarding_done', true);
-    router.replace('/(tabs)');
+    router.replace('/');
+  };
+
+  const handleNext = () => {
+    if (activeIndex < PAGES.length - 1) {
+      listRef.current?.scrollToIndex({ index: activeIndex + 1, animated: true });
+    } else {
+      void completeOnboarding();
+    }
   };
 
   const handleSkip = async () => {
@@ -81,6 +90,7 @@ export default function OnboardingScreen() {
       )}
 
       <FlatList
+        ref={listRef}
         data={PAGES}
         horizontal
         pagingEnabled
@@ -123,15 +133,7 @@ export default function OnboardingScreen() {
       <View style={styles.buttonContainer}>
         <HikmahButton
           title={activeIndex === PAGES.length - 1 ? 'Get Started' : 'Next'}
-          onPress={
-            activeIndex === PAGES.length - 1
-              ? completeOnboarding
-              : () => {
-                  if (activeIndex < PAGES.length - 1) {
-                    // inert placeholder; user can swipe to continue
-                  }
-                }
-          }
+          onPress={handleNext}
           variant="primary"
           size="lg"
           fullWidth

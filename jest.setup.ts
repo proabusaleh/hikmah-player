@@ -179,15 +179,33 @@ jest.mock('lucide-react-native', () => {
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({
     push: jest.fn(),
+    navigate: jest.fn(),
     back: jest.fn(),
     replace: jest.fn(),
+    dismiss: jest.fn(),
+    dismissTo: jest.fn(),
+    canDismiss: jest.fn(() => false),
+    setParams: jest.fn(),
   })),
   useLocalSearchParams: jest.fn(() => ({})),
   useSegments: jest.fn(() => []),
   Stack: { Screen: 'StackScreen' },
   Tabs: { Screen: 'TabScreen' },
+  Link: 'Link',
   Redirect: 'Redirect',
-  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
+  ThemeProvider: ({ children }: any) => children,
+  DarkTheme: {},
+  DefaultTheme: {},
+  router: {
+    push: jest.fn(),
+    navigate: jest.fn(),
+    back: jest.fn(),
+    replace: jest.fn(),
+    dismiss: jest.fn(),
+    dismissTo: jest.fn(),
+    canDismiss: jest.fn(() => false),
+    setParams: jest.fn(),
+  },
 }));
 
 jest.mock('react-native-safe-area-context', () => {

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -35,8 +35,8 @@ export const GestureLayer: React.FC<GestureLayerProps> = ({
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const rippleOpacity = useRef(new Animated.Value(0)).current;
-  const rippleScale = useRef(new Animated.Value(0.5)).current;
+  const [rippleOpacity] = useState(() => new Animated.Value(0));
+  const [rippleScale] = useState(() => new Animated.Value(0.5));
   const [rippleSide, setRippleSide] = React.useState<'left' | 'right'>('right');
 
   const showRipple = (side: 'left' | 'right') => {
@@ -84,30 +84,32 @@ export const GestureLayer: React.FC<GestureLayerProps> = ({
     }, 280);
   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (_, gestureState) =>
-        Math.abs(gestureState.dx) > 18 || Math.abs(gestureState.dy) > 18,
-      onPanResponderMove: (_, gestureState) => {
-        if (!onSwipeProgress) return;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dx) > 18 || Math.abs(gestureState.dy) > 18,
+        onPanResponderMove: (_, gestureState) => {
+          if (!onSwipeProgress) return;
 
-        const { dx, dy } = gestureState;
+          const { dx, dy } = gestureState;
 
-        if (Math.abs(dx) > Math.abs(dy)) {
-          onSwipeProgress(dx > 0 ? 'right' : 'left', dx);
-        } else {
-          onSwipeProgress(dy > 0 ? 'down' : 'up', dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (Math.abs(gestureState.dy) > 60) {
-          if (gestureState.dy < 0 && onSwipeUp) onSwipeUp();
-          if (gestureState.dy > 0 && onSwipeDown) onSwipeDown();
-        }
-      },
-    })
-  ).current;
+          if (Math.abs(dx) > Math.abs(dy)) {
+            onSwipeProgress(dx > 0 ? 'right' : 'left', dx);
+          } else {
+            onSwipeProgress(dy > 0 ? 'down' : 'up', dy);
+          }
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (Math.abs(gestureState.dy) > 60) {
+            if (gestureState.dy < 0 && onSwipeUp) onSwipeUp();
+            if (gestureState.dy > 0 && onSwipeDown) onSwipeDown();
+          }
+        },
+      }),
+    [onSwipeProgress, onSwipeUp, onSwipeDown]
+  );
 
   return (
     <View style={styles.container} {...panResponder.panHandlers}>

@@ -1,5 +1,5 @@
 import { Check, FolderPlus, ListMusic, Plus } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     Alert,
     FlatList,
@@ -34,24 +34,32 @@ export const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
   const [addedToIds, setAddedToIds] = useState<Set<string>>(new Set());
   const [showCreateSheet, setShowCreateSheet] = useState(false);
 
-  useEffect(() => {
-    if (visible) {
-      void loadPlaylists();
-    }
-  }, [visible]);
-
-  const loadPlaylists = async () => {
+  const loadPlaylists = useCallback(async () => {
     const all = await PlaylistManager.getAllPlaylists();
-    setPlaylists(all.filter((p) => !p.isSystem));
+    return all;
+  }, []);
 
-    const alreadyIn = new Set<string>();
-    all.forEach((p) => {
-      if (p.mediaIds.includes(mediaId)) {
-        alreadyIn.add(p.id);
-      }
-    });
-    setAddedToIds(alreadyIn);
-  };
+  const applyPlaylists = useCallback(
+    (all: Playlist[]) => {
+      setPlaylists(all.filter((p) => !p.isSystem));
+
+      const alreadyIn = new Set<string>();
+      all.forEach((p) => {
+        if (p.mediaIds.includes(mediaId)) {
+          alreadyIn.add(p.id);
+        }
+      });
+      setAddedToIds(alreadyIn);
+    },
+    [mediaId]
+  );
+
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+    void loadPlaylists().then(applyPlaylists);
+  }, [visible, loadPlaylists, applyPlaylists]);
 
   const handleTogglePlaylist = async (playlist: Playlist) => {
     const isAlreadyAdded = addedToIds.has(playlist.id);
@@ -80,7 +88,8 @@ export const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
     const newPlaylist = await PlaylistManager.createPlaylist(data);
     await PlaylistManager.addMediaToPlaylist(newPlaylist.id, [mediaId]);
     setAddedToIds((prev) => new Set(prev).add(newPlaylist.id));
-    await loadPlaylists();
+    const all = await loadPlaylists();
+    applyPlaylists(all);
     onAdded?.();
   };
 
@@ -148,6 +157,7 @@ export const AddToPlaylistSheet: React.FC<AddToPlaylistSheetProps> = ({
       </BottomSheet>
 
       <PlaylistFormSheet
+        key="new-playlist"
         visible={showCreateSheet}
         onClose={() => setShowCreateSheet(false)}
         onSave={handleCreateAndAdd}

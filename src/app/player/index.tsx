@@ -9,6 +9,7 @@ import {
     Repeat1,
     Share2,
     Shuffle,
+    Sparkles,
     Timer,
     Volume2,
     VolumeX,
@@ -28,10 +29,13 @@ import { BottomSheet } from '@/components/common/BottomSheet';
 import { HikmahIconButton } from '@/components/common/HikmahIconButton';
 import { PlayerControls } from '@/components/player/PlayerControls';
 import { ProgressBar } from '@/components/player/ProgressBar';
+import { SmartPlaybackOverlay } from '@/components/player/SmartPlaybackOverlay';
+import { SmartQueueSheet } from '@/components/player/SmartQueueSheet';
 import { TrackInfo } from '@/components/player/TrackInfo';
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { useSleepTimer } from '@/hooks/useSleepTimer';
+import { SmartQueueItem } from '@/types/smartPlayback';
 
 const SPEED_OPTIONS = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 const SLEEP_OPTIONS = [15, 30, 45, 60, 90];
@@ -61,6 +65,8 @@ export default function AudioPlayerScreen() {
     setVolume,
     toggleMute,
     playTrackAtIndex,
+    setQueue,
+    playMedia,
   } = useAudioPlayback();
 
   const { isActive: isSleepActive, formattedRemaining, startTimer, cancelTimer } = useSleepTimer();
@@ -68,9 +74,16 @@ export default function AudioPlayerScreen() {
   const [showQueue, setShowQueue] = useState(false);
   const [showSpeed, setShowSpeed] = useState(false);
   const [showSleep, setShowSleep] = useState(false);
+  const [showSmartQueue, setShowSmartQueue] = useState(false);
 
   const handleRelativeSeek = (seconds: number) => {
     seekRelative(seconds);
+  };
+
+  const handleSmartQueuePlay = (item: SmartQueueItem) => {
+    setQueue([item.media], 0);
+    playMedia(item.media);
+    setShowSmartQueue(false);
   };
 
   const RepeatIcon = repeatMode === 'one' ? Repeat1 : Repeat;
@@ -112,11 +125,15 @@ export default function AudioPlayerScreen() {
             }
             onPress={() => setShowSleep(true)}
             size="sm"
+            testID="sleep-button"
+            accessibilityLabel="Sleep timer"
           />
           <HikmahIconButton
             icon={<Text style={[styles.speedIcon, playbackSpeed !== 1 && styles.speedIconActive]}>{playbackSpeed}x</Text>}
             onPress={() => setShowSpeed(true)}
             size="sm"
+            testID="speed-button"
+            accessibilityLabel="Playback speed"
           />
         </View>
 
@@ -152,6 +169,10 @@ export default function AudioPlayerScreen() {
           <TouchableOpacity onPress={() => setShowQueue(true)} style={styles.modeBtn} activeOpacity={0.8}>
             <ListMusic size={20} color={Colors.text} />
           </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => setShowSmartQueue(true)} style={styles.modeBtn} activeOpacity={0.8}>
+            <Sparkles size={20} color={Colors.accent} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.volumeSection}>
@@ -170,6 +191,15 @@ export default function AudioPlayerScreen() {
           <Volume2 size={14} color={Colors.text} />
         </View>
       </ScrollView>
+
+      {/* ── Smart Playback: network/quality chips, skip button, resume, up-next ── */}
+      <SmartPlaybackOverlay onSeek={(sec) => void seekTo(sec * 1000)} />
+
+      <SmartQueueSheet
+        visible={showSmartQueue}
+        onClose={() => setShowSmartQueue(false)}
+        onPlayItem={handleSmartQueuePlay}
+      />
 
       <BottomSheet
         visible={showQueue}

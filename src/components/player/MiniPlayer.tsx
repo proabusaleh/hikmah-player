@@ -20,7 +20,7 @@ export const MiniPlayer: React.FC = () => {
     <TouchableOpacity
       style={styles.container}
       activeOpacity={0.95}
-      onPress={() => router.push('/player')}
+      onPress={() => router.navigate('/player')}
     >
       <View style={styles.progressBg}>
         <View style={[styles.progressFill, { width: `${progress}%` }]} />

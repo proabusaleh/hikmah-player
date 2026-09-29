@@ -79,7 +79,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   private handleGoHome = (): void => {
     this.handleReset();
-    router.replace('/(tabs)');
+    router.replace('/');
   };
 
   render(): ReactNode {

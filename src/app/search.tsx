@@ -9,7 +9,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   FlatList,
   ScrollView,
@@ -65,37 +65,40 @@ export default function SearchScreen() {
     void loadHistory();
   }, [buildSearchIndex, isIndexReady, loadHistory]);
 
-  const handleResultPress = (result: SearchResult) => {
-    const doc = result.document;
+  const handleResultPress = useCallback(
+    (result: SearchResult) => {
+      const doc = result.document;
 
-    // Save to history
-    void addToHistory(query, totalResults);
+      // Save to history
+      void addToHistory(query, totalResults);
 
-    if (doc.mediaType === 'video') {
-      router.push({
-        pathname: '/player/video',
-        params: {
+      if (doc.mediaType === 'video') {
+        router.push({
+          pathname: '/player/video',
+          params: {
+            id: doc.id,
+            title: doc.title,
+            speaker: doc.artistOrSpeaker,
+            url: doc.sourceUrl,
+          },
+        });
+      } else {
+        const mediaItem: MediaItem = {
           id: doc.id,
           title: doc.title,
-          speaker: doc.artistOrSpeaker,
+          artistOrSpeaker: doc.artistOrSpeaker || undefined,
           url: doc.sourceUrl,
-        },
-      });
-    } else {
-      const mediaItem: MediaItem = {
-        id: doc.id,
-        title: doc.title,
-        artistOrSpeaker: doc.artistOrSpeaker || undefined,
-        url: doc.sourceUrl,
-        duration: doc.duration,
-        type: doc.mediaType,
-        addedAt: Date.now(),
-        thumbnailUrl: doc.thumbnailUrl,
-      };
-      setQueue([mediaItem], 0);
-      playMedia(mediaItem);
-    }
-  };
+          duration: doc.duration,
+          type: doc.mediaType,
+          addedAt: Date.now(),
+          thumbnailUrl: doc.thumbnailUrl,
+        };
+        setQueue([mediaItem], 0);
+        playMedia(mediaItem);
+      }
+    },
+    [addToHistory, playMedia, query, router, setQueue, totalResults]
+  );
 
   const handleSuggestionPress = (suggestion: string) => {
     setQuery(suggestion);
@@ -119,7 +122,13 @@ export default function SearchScreen() {
     <View style={styles.container}>
       {/* ── Search Bar ── */}
       <View style={styles.searchBarContainer}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => {
+            if (router.canDismiss()) router.dismiss();
+            else router.replace('/');
+          }}
+          style={styles.backBtn}
+        >
           <Text style={styles.backText}>Cancel</Text>
         </TouchableOpacity>
         <View style={styles.searchBarWrap}>

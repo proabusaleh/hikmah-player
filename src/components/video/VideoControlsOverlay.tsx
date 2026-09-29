@@ -7,7 +7,7 @@ import {
     RotateCcw,
     RotateCw,
 } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
@@ -50,7 +50,7 @@ export const VideoControlsOverlay: React.FC<VideoControlsOverlayProps> = ({
   const [visible, setVisible] = useState(true);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const startHideTimer = () => {
+  const startHideTimer = useCallback(() => {
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
     }
@@ -60,7 +60,7 @@ export const VideoControlsOverlay: React.FC<VideoControlsOverlayProps> = ({
         setVisible(false);
       }
     }, 3500);
-  };
+  }, [isPlaying]);
 
   const toggleVisibility = () => {
     setVisible((prev) => !prev);
@@ -79,7 +79,7 @@ export const VideoControlsOverlay: React.FC<VideoControlsOverlayProps> = ({
         clearTimeout(hideTimerRef.current);
       }
     };
-  }, [visible, isPlaying]);
+  }, [visible, isPlaying, startHideTimer]);
 
   return (
     <TouchableWithoutFeedback onPress={toggleVisibility}>

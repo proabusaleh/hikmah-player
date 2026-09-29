@@ -1,17 +1,17 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, Spacing, Typography } from '@/constants/theme';
 import { StorageService } from '@/services/storage/storageService';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 export default function SplashScreen() {
   const router = useRouter();
-  const scaleAnim = useRef(new Animated.Value(0.5)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const subtitleFade = useRef(new Animated.Value(0)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(0.5));
+  const [fadeAnim] = useState(() => new Animated.Value(0));
+  const [subtitleFade] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.parallel([
@@ -37,7 +37,7 @@ export default function SplashScreen() {
 
     const timer = setTimeout(async () => {
       const hasSeenOnboarding = await StorageService.getItem<boolean>('@hikmah_onboarding_done');
-      router.replace(hasSeenOnboarding ? '/(tabs)' : '/onboarding');
+      router.replace(hasSeenOnboarding ? '/' : '/onboarding');
     }, 2500);
 
     return () => clearTimeout(timer);

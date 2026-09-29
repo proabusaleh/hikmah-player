@@ -1,5 +1,5 @@
 import { Check, Palette, Smile } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Alert,
     ScrollView,
@@ -37,29 +37,17 @@ export const PlaylistFormSheet: React.FC<PlaylistFormSheetProps> = ({
 }) => {
   const isEditing = !!editPlaylist;
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [coverColor, setCoverColor] = useState<string>(PLAYLIST_COVER_COLORS[0]);
-  const [coverEmoji, setCoverEmoji] = useState<string>(PLAYLIST_COVER_EMOJIS[0]);
+  // Form state is initialized from `editPlaylist` on mount.
+  // Parents must pass `key={editPlaylist?.id ?? 'new'}` so the form
+  // remounts (and resets) when switching between create/edit targets
+  // instead of syncing via setState-in-effect.
+  const [name, setName] = useState(() => editPlaylist?.name ?? '');
+  const [description, setDescription] = useState(() => editPlaylist?.description ?? '');
+  const [coverColor, setCoverColor] = useState<string>(() => editPlaylist?.coverColor ?? PLAYLIST_COVER_COLORS[0]);
+  const [coverEmoji, setCoverEmoji] = useState<string>(() => editPlaylist?.coverEmoji ?? PLAYLIST_COVER_EMOJIS[0]);
   const [nameError, setNameError] = useState<string | null>(null);
   const [descError, setDescError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (editPlaylist) {
-      setName(editPlaylist.name);
-      setDescription(editPlaylist.description || '');
-      setCoverColor(editPlaylist.coverColor);
-      setCoverEmoji(editPlaylist.coverEmoji);
-    } else {
-      setName('');
-      setDescription('');
-      setCoverColor(PLAYLIST_COVER_COLORS[Math.floor(Math.random() * PLAYLIST_COVER_COLORS.length)]);
-      setCoverEmoji(PLAYLIST_COVER_EMOJIS[0]);
-    }
-    setNameError(null);
-    setDescError(null);
-  }, [editPlaylist, visible]);
 
   const handleSave = async () => {
     const nError = validatePlaylistName(name);

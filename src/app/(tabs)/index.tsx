@@ -102,7 +102,7 @@ export default function HomeScreen() {
         </Text>
       </TouchableOpacity>
 
-      <SectionHeader title="Featured Video" actionLabel="See All" onAction={() => router.push('/(tabs)/library')} />
+      <SectionHeader title="Featured Video" actionLabel="See All" onAction={() => router.navigate('/library')} />
       <VideoCard
         item={featuredVideo}
         onPress={() =>
@@ -124,7 +124,7 @@ export default function HomeScreen() {
         title="Quran Recitations"
         subtitle={audioSubtitle}
         actionLabel="See All"
-        onAction={() => router.push('/(tabs)/library')}
+        onAction={() => router.navigate('/library')}
       />
 
       {audioList.map((item, index) => (

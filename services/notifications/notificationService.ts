@@ -139,7 +139,9 @@ export const NotificationService = {
       enableVibrate: true,
     });
 
-    console.log('[Notifications] All channels created');
+    if (__DEV__) {
+      console.log('[Notifications] All channels created');
+    }
   },
 
   /**
@@ -182,17 +184,24 @@ export const NotificationService = {
    * Initialize the full notification system.
    */
   async initialize(): Promise<boolean> {
-    notificationsEnabled = (await StorageService.getItem<boolean>(ENABLED_KEY)) ?? true;
+    try {
+      notificationsEnabled = (await StorageService.getItem<boolean>(ENABLED_KEY)) ?? true;
 
-    const hasPermission = await this.requestPermissions();
-    if (!hasPermission) {
-      console.warn('[Notifications] Permission denied');
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        if (__DEV__) {
+          console.warn('[Notifications] Permission denied');
+        }
+        return false;
+      }
+
+      await this.setupChannels();
+      await this.setupCategories();
+      return true;
+    } catch {
+      // Notifications are non-critical: never crash startup.
       return false;
     }
-
-    await this.setupChannels();
-    await this.setupCategories();
-    return true;
   },
 
   /** App-level master switch (persisted). */

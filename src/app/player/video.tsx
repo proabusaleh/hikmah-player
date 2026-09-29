@@ -15,7 +15,6 @@ export default function VideoPlayerScreen() {
 
   const mediaId = (params.id as string) || 'v-1';
   const mediaTitle = (params.title as string) || 'Hikmah Video';
-  const mediaSpeaker = (params.speaker as string) || 'Islamic Scholar';
   const mediaUrl =
     (params.url as string) || 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
 

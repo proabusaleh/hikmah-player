@@ -6,41 +6,16 @@
     "ignoreDeprecations": "6.0",
     "types": ["jest", "node"],
     "paths": {
-      "@/*": [
-        "src/*",
-        "./*"
-      ],
-      "@/assets/*": [
-        "./assets/*"
-      ],
-      "@/components/*": [
-        "src/components/*",
-        "./components/*"
-      ],
-      "@/features/*": [
-        "./features/*"
-      ],
-      "@/services/*": [
-        "./services/*"
-      ],
-      "@/store/*": [
-        "./store/*"
-      ],
-      "@/hooks/*": [
-        "src/hooks/*",
-        "./hooks/*"
-      ],
-      "@/utils/*": [
-        "src/utils/*",
-        "./utils/*"
-      ],
-      "@/constants/*": [
-        "src/constants/*",
-        "./constants/*"
-      ],
-      "@/types/*": [
-        "./types/*"
-      ]
+      "@/*": ["./src/*", "./*"],
+      "@/assets/*": ["./assets/*"],
+      "@/components/*": ["src/components/*", "./components/*"],
+      "@/features/*": ["./features/*"],
+      "@/services/*": ["./services/*"],
+      "@/store/*": ["./store/*"],
+      "@/hooks/*": ["src/hooks/*", "./hooks/*"],
+      "@/utils/*": ["src/utils/*", "./utils/*"],
+      "@/constants/*": ["src/constants/*", "./constants/*"],
+      "@/types/*": ["./types/*"]
     }
   },
   "exclude": ["node_modules", "e2e"]
