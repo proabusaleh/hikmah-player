@@ -4,12 +4,12 @@
     "slug": "hikmah-player",
     "version": "1.0.1",
     "orientation": "default",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/icons/icon.png",
     "scheme": "hikmahplayer",
     "userInterfaceStyle": "automatic",
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./assets/icons/icon.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png",
         "backgroundColor": "#0F172A"
       },

@@ -211,4 +211,5 @@ export const StorageKeys = {
   FAVORITES: '@hikmah_favorites',
   DOWNLOADS_METADATA: '@hikmah_downloads',
   SETTINGS: '@hikmah_settings',
+  MEDIA_PERMISSION_ASKED: '@hikmah_media_permission_asked',
 } as const;

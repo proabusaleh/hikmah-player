@@ -1,6 +1,8 @@
 import { useEvent } from 'expo';
 import { useVideoPlayer } from 'expo-video';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { Platform } from 'react-native';
 
 import { clamp, createVideoSource, videoSpeedPresets } from '@/services/video/videoEngine';
 
@@ -10,6 +12,8 @@ export type VideoPlaybackState = {
   position: number;
   duration: number;
   playbackRate: number;
+  volume: number;
+  isMuted: boolean;
   status: 'idle' | 'loading' | 'readyToPlay' | 'error';
 };
 
@@ -20,6 +24,8 @@ export const useVideoEngine = (sourceUri: string, title?: string) => {
     position: 0,
     duration: 0,
     playbackRate: 1,
+    volume: 1,
+    isMuted: false,
     status: 'idle',
   });
 
@@ -27,6 +33,11 @@ export const useVideoEngine = (sourceUri: string, title?: string) => {
     nextPlayer.loop = false;
     nextPlayer.playbackRate = 1;
     nextPlayer.timeUpdateEventInterval = 0.25;
+  });
+
+  const playerRef = useRef(player);
+  useEffect(() => {
+    playerRef.current = player;
   });
 
   const statusEvent = useEvent(player, 'statusChange', {
@@ -46,11 +57,14 @@ export const useVideoEngine = (sourceUri: string, title?: string) => {
   });
 
   useEffect(() => {
-    const nextStatus = statusEvent?.status ?? player.status;
-    const nextIsPlaying = Boolean(playingEvent?.isPlaying ?? player.playing);
-    const nextPosition = Number(timeEvent?.currentTime ?? player.currentTime) || 0;
-    const nextDuration = Number(player.duration) || 0;
-    const nextRate = Number(player.playbackRate) || 1;
+    const currentPlayer = playerRef.current;
+    const nextStatus = statusEvent?.status ?? currentPlayer.status;
+    const nextIsPlaying = Boolean(playingEvent?.isPlaying ?? currentPlayer.playing);
+    const nextPosition = Number(timeEvent?.currentTime ?? currentPlayer.currentTime) || 0;
+    const nextDuration = Number(currentPlayer.duration) || 0;
+    const nextRate = Number(currentPlayer.playbackRate) || 1;
+    const nextVolume = clamp(Number(currentPlayer.volume ?? 1), 0, 1);
+    const nextMuted = Boolean(currentPlayer.muted ?? false);
 
     setState({
       isPlaying: nextIsPlaying,
@@ -58,9 +72,11 @@ export const useVideoEngine = (sourceUri: string, title?: string) => {
       position: nextPosition,
       duration: nextDuration,
       playbackRate: nextRate,
+      volume: nextVolume,
+      isMuted: nextMuted,
       status: nextStatus === 'error' ? 'error' : nextStatus,
     });
-  }, [player, playingEvent, statusEvent, timeEvent]);
+  }, [playingEvent, statusEvent, timeEvent]);
 
   const currentSpeedIndex = useMemo(() => {
     const normalized = Number(state.playbackRate) || 1;
@@ -69,40 +85,103 @@ export const useVideoEngine = (sourceUri: string, title?: string) => {
   }, [state.playbackRate]);
 
   const togglePlayPause = useCallback(() => {
-    if (player.playing) {
-      player.pause();
+    const currentPlayer = playerRef.current;
+    if (Platform.OS === 'web') {
+      const nextStatus = String(statusEvent?.status ?? currentPlayer.status);
+      if (!['readyToPlay', 'playing'].includes(nextStatus)) {
+        return;
+      }
+    }
+
+    if (currentPlayer.playing) {
+      currentPlayer.pause();
       return;
     }
 
-    player.play();
-  }, [player]);
+    try {
+      currentPlayer.play();
+    } catch {
+      // Web can throw when the underlying media source is not yet playable.
+    }
+  }, [statusEvent]);
 
   const seekBy = useCallback(
     (seconds: number) => {
-      const nextTime = clamp(player.currentTime + seconds, 0, Number(player.duration || 0));
-      player.currentTime = nextTime;
+      const currentPlayer = playerRef.current;
+      if (!currentPlayer || typeof currentPlayer.currentTime !== 'number') {
+        return;
+      }
+      if (Platform.OS === 'web') {
+        const nextStatus = String(statusEvent?.status ?? currentPlayer.status);
+        if (!['readyToPlay', 'playing'].includes(nextStatus)) {
+          return;
+        }
+      }
+      const nextTime = clamp(currentPlayer.currentTime + seconds, 0, Number(currentPlayer.duration || 0));
+      currentPlayer.currentTime = nextTime;
       setState((prev) => ({ ...prev, position: nextTime }));
     },
-    [player]
+    [statusEvent]
   );
 
   const seekTo = useCallback(
     (positionSeconds: number) => {
-      const nextTime = clamp(positionSeconds, 0, Number(player.duration || 0));
-      player.currentTime = nextTime;
+      const currentPlayer = playerRef.current;
+      if (!currentPlayer || typeof currentPlayer.currentTime !== 'number') {
+        return;
+      }
+      if (Platform.OS === 'web') {
+        const nextStatus = String(statusEvent?.status ?? currentPlayer.status);
+        if (!['readyToPlay', 'playing'].includes(nextStatus)) {
+          return;
+        }
+      }
+      const nextTime = clamp(positionSeconds, 0, Number(currentPlayer.duration || 0));
+      currentPlayer.currentTime = nextTime;
       setState((prev) => ({ ...prev, position: nextTime }));
     },
-    [player]
+    [statusEvent]
   );
 
   const setRate = useCallback(
     (rate: number) => {
+      const currentPlayer = playerRef.current;
+      if (!currentPlayer || typeof currentPlayer.playbackRate !== 'number') {
+        return;
+      }
       const safeRate = clamp(rate, 0.75, 2);
-      player.playbackRate = safeRate;
+      currentPlayer.playbackRate = safeRate;
       setState((prev) => ({ ...prev, playbackRate: safeRate }));
     },
-    [player]
+    []
   );
+
+  const setVolume = useCallback((level: number) => {
+    const currentPlayer = playerRef.current;
+    if (!currentPlayer || typeof currentPlayer.volume !== 'number') {
+      return;
+    }
+    const safeLevel = clamp(level, 0, 1);
+    currentPlayer.volume = safeLevel;
+    if (safeLevel > 0 && currentPlayer.muted) {
+      currentPlayer.muted = false;
+    }
+    setState((prev) => ({
+      ...prev,
+      volume: safeLevel,
+      isMuted: safeLevel > 0 ? false : prev.isMuted,
+    }));
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const currentPlayer = playerRef.current;
+    if (!currentPlayer || typeof currentPlayer.muted !== 'boolean') {
+      return;
+    }
+    const nextMuted = !currentPlayer.muted;
+    currentPlayer.muted = nextMuted;
+    setState((prev) => ({ ...prev, isMuted: nextMuted }));
+  }, []);
 
   const cycleSpeed = useCallback(() => {
     const currentIndex = currentSpeedIndex >= 0 ? currentSpeedIndex : 0;
@@ -111,9 +190,13 @@ export const useVideoEngine = (sourceUri: string, title?: string) => {
   }, [currentSpeedIndex, setRate]);
 
   const reset = useCallback(() => {
-    player.currentTime = 0;
+    const currentPlayer = playerRef.current;
+    if (!currentPlayer || typeof currentPlayer.currentTime !== 'number') {
+      return;
+    }
+    currentPlayer.currentTime = 0;
     setState((prev) => ({ ...prev, position: 0 }));
-  }, [player]);
+  }, []);
 
   return {
     player,
@@ -125,6 +208,8 @@ export const useVideoEngine = (sourceUri: string, title?: string) => {
     seekBy,
     seekTo,
     setRate,
+    setVolume,
+    toggleMute,
     togglePlayPause,
   };
 };

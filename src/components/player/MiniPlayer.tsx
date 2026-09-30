@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { Colors, Spacing } from '@/constants/theme';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { PlayerControls } from './PlayerControls';
+import { useAnimatedProgress } from './ProgressBar';
 import { TrackInfo } from './TrackInfo';
 
 export const MiniPlayer: React.FC = () => {
@@ -12,9 +13,9 @@ export const MiniPlayer: React.FC = () => {
   const { currentTrack, status, position, duration, togglePlayPause, skipNext, skipPrevious } =
     useAudioPlayback();
 
-  if (!currentTrack || status === 'idle') return null;
+  const progress = useAnimatedProgress(duration > 0 ? position / duration : 0);
 
-  const progress = duration > 0 ? (position / duration) * 100 : 0;
+  if (!currentTrack || status === 'idle') return null;
 
   return (
     <TouchableOpacity
@@ -23,7 +24,17 @@ export const MiniPlayer: React.FC = () => {
       onPress={() => router.navigate('/player')}
     >
       <View style={styles.progressBg}>
-        <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        <Animated.View
+          style={[
+            styles.progressFill,
+            {
+              width: progress.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['0%', '100%'],
+              }),
+            },
+          ]}
+        />
       </View>
 
       <View style={styles.content}>

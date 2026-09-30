@@ -17,6 +17,7 @@ import {
     ActivityIndicator,
     Alert,
     Linking,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -25,6 +26,7 @@ import {
     View,
 } from 'react-native';
 
+import { BottomSheet } from '@/components/common/BottomSheet';
 import { HikmahButton } from '@/components/common/HikmahButton';
 import { HikmahCard } from '@/components/common/HikmahCard';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -81,6 +83,21 @@ export default function LibraryScreen() {
   const { startDownload } = useDownloadsStore();
   const [showSearch, setShowSearch] = useState(false);
   const [addToPlaylistMedia, setAddToPlaylistMedia] = useState<LocalMediaItem | null>(null);
+  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+
+  // `Linking.openSettings()` only exists on native (iOS/Android). On web it
+  // is undefined, so guard it and explain where browser permissions live.
+  const openSystemSettings = (): void => {
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        'System Settings',
+        'Media permissions are managed in your browser\u2019s site settings (lock icon in the address bar).'
+      );
+      return;
+    }
+    void Linking.openSettings();
+  };
 
   useEffect(() => {
     void loadLibrary();
@@ -103,7 +120,7 @@ export default function LibraryScreen() {
         'Hikmah Player needs access to your videos and audio to import them. Open Settings to allow access.',
         [
           { text: 'Not Now', style: 'cancel' },
-          { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+          { text: 'Open Settings', onPress: () => openSystemSettings() },
         ]
       );
     } else {
@@ -174,23 +191,19 @@ export default function LibraryScreen() {
     void startDownload(toMediaItem(item));
   };
 
+  // `Alert.prompt` is iOS-only — use a BottomSheet dialog so playlist
+  // creation works on Android and web too.
   const handleCreatePlaylist = () => {
-    Alert.prompt(
-      'New Playlist',
-      'Enter playlist name:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Create',
-          onPress: async (name?: string) => {
-            if (name?.trim()) {
-              await createPlaylist(name.trim());
-            }
-          },
-        },
-      ],
-      'plain-text'
-    );
+    setNewPlaylistName('');
+    setShowCreatePlaylist(true);
+  };
+
+  const handleConfirmCreatePlaylist = () => {
+    const name = newPlaylistName.trim();
+    if (!name) return;
+    setShowCreatePlaylist(false);
+    setNewPlaylistName('');
+    void createPlaylist(name);
   };
 
   if (isLoading) {
@@ -207,7 +220,9 @@ export default function LibraryScreen() {
       <View style={styles.searchContainer}>
         {showSearch ? (
           <View style={styles.searchInputWrap}>
-            <Search size={18} color={Colors.muted} />
+            <View style={styles.searchIcon}>
+              <Search size={18} color={Colors.muted} />
+            </View>
             <TextInput
               style={styles.searchInput}
               placeholder="Search library..."
@@ -351,7 +366,7 @@ export default function LibraryScreen() {
         </View>
       )}
 
-      {(activeSection !== 'all' || searchQuery) && (
+      {(activeSection !== 'all' || searchQuery !== '') && (
         <OptimizedMediaList
           data={filteredMedia}
           onPlay={(item) => handleOptimizedPlay(item, filteredMedia)}
@@ -447,6 +462,38 @@ export default function LibraryScreen() {
           }}
         />
       )}
+
+      <BottomSheet
+        visible={showCreatePlaylist}
+        onClose={() => setShowCreatePlaylist(false)}
+        title="New Playlist"
+        snapHeight={0.35}
+      >
+        <TextInput
+          style={styles.playlistNameInput}
+          placeholder="Enter playlist name..."
+          placeholderTextColor={Colors.dim}
+          value={newPlaylistName}
+          onChangeText={setNewPlaylistName}
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={handleConfirmCreatePlaylist}
+        />
+        <View style={styles.playlistDialogActions}>
+          <HikmahButton
+            title="Cancel"
+            onPress={() => setShowCreatePlaylist(false)}
+            variant="outline"
+            size="md"
+          />
+          <HikmahButton
+            title="Create"
+            onPress={handleConfirmCreatePlaylist}
+            variant="primary"
+            size="md"
+          />
+        </View>
+      </BottomSheet>
     </View>
   );
 }
@@ -498,6 +545,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.secondary,
     gap: Spacing.sm,
   },
+  searchIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   searchInput: {
     flex: 1,
     fontSize: 14,
@@ -508,6 +559,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.secondary,
     fontWeight: '600',
+  },
+  playlistNameInput: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    fontSize: 15,
+    color: Colors.text,
+    marginBottom: Spacing.lg,
+  },
+  playlistDialogActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.md,
   },
   sectionScroll: {
     maxHeight: 50,

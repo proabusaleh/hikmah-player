@@ -1,6 +1,6 @@
 import { Bell, BellRing, Download, Globe, Info, ListMusic, Moon, Music, Settings2, Shield, SkipForward, Sparkles, Trash2, Volume2, Wifi, Zap } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { HikmahCard } from '@/components/common/HikmahCard';
@@ -10,6 +10,21 @@ import { Colors, Spacing } from '@/constants/theme';
 import { changeLanguage, getSupportedLanguages } from '@/services/i18n/i18n';
 import { NotificationService } from '@/services/notifications/notificationService';
 import { useSmartPlaybackStore } from '@/store/useSmartPlaybackStore';
+
+/**
+ * `Linking.openSettings()` only exists on native (iOS/Android). On web it is
+ * undefined, so guard it and explain where browser permissions live instead.
+ */
+const openSystemSettings = (): void => {
+  if (Platform.OS === 'web') {
+    Alert.alert(
+      'System Settings',
+      'Notification permissions are managed in your browser\u2019s site settings (lock icon in the address bar).'
+    );
+    return;
+  }
+  void Linking.openSettings();
+};
 
 export default function SettingsScreen() {
   const { config, loadConfig, updateConfig, networkState, currentQuality } =
@@ -44,7 +59,7 @@ export default function SettingsScreen() {
             'Allow notifications in system settings to receive alerts.',
             [
               { text: 'Cancel', style: 'cancel' },
-              { text: 'Open Settings', onPress: () => void Linking.openSettings() },
+              { text: 'Open Settings', onPress: () => openSystemSettings() },
             ]
           );
         }
@@ -216,7 +231,7 @@ export default function SettingsScreen() {
           icon={<Settings2 size={18} color={Colors.muted} />}
           label="System Settings"
           description="Manage permission in system settings"
-          onPress={() => void Linking.openSettings()}
+          onPress={() => openSystemSettings()}
         />
       </HikmahCard>
 

@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import Slider from '@react-native-community/slider';
 import { useRouter } from 'expo-router';
 import {
@@ -5,6 +6,7 @@ import {
     Heart,
     ListMusic,
     MoreHorizontal,
+    Music,
     Repeat,
     Repeat1,
     Share2,
@@ -14,9 +16,12 @@ import {
     Volume2,
     VolumeX,
 } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+    Animated,
     FlatList,
+    Image,
+    PanResponder,
     ScrollView,
     StyleSheet,
     Text,
@@ -31,7 +36,6 @@ import { PlayerControls } from '@/components/player/PlayerControls';
 import { ProgressBar } from '@/components/player/ProgressBar';
 import { SmartPlaybackOverlay } from '@/components/player/SmartPlaybackOverlay';
 import { SmartQueueSheet } from '@/components/player/SmartQueueSheet';
-import { TrackInfo } from '@/components/player/TrackInfo';
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { useSleepTimer } from '@/hooks/useSleepTimer';
@@ -76,6 +80,56 @@ export default function AudioPlayerScreen() {
   const [showSleep, setShowSleep] = useState(false);
   const [showSmartQueue, setShowSmartQueue] = useState(false);
 
+  // Entrance animation + draggable artwork (fling sideways for prev/next).
+  const [enterAnim] = useState(() => new Animated.Value(0));
+  const [artX] = useState(() => new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.timing(enterAnim, {
+      toValue: 1,
+      duration: 450,
+      useNativeDriver: true,
+    }).start();
+  }, [enterAnim]);
+
+  useEffect(() => {
+    artX.setValue(0);
+  }, [currentTrack?.id, artX]);
+
+  const artPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gestureState) =>
+          Math.abs(gestureState.dx) > 20 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy),
+        onPanResponderMove: (_, gestureState) => {
+          artX.setValue(gestureState.dx);
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          if (gestureState.dx < -80) {
+            skipNext();
+          } else if (gestureState.dx > 80) {
+            skipPrevious();
+          }
+          Animated.spring(artX, {
+            toValue: 0,
+            tension: 300,
+            friction: 30,
+            useNativeDriver: true,
+          }).start();
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(artX, {
+            toValue: 0,
+            tension: 300,
+            friction: 30,
+            useNativeDriver: true,
+          }).start();
+        },
+      }),
+    [artX, skipNext, skipPrevious]
+  );
+
   const handleRelativeSeek = (seconds: number) => {
     seekRelative(seconds);
   };
@@ -91,6 +145,14 @@ export default function AudioPlayerScreen() {
 
   return (
     <View style={styles.container}>
+      {currentTrack?.thumbnailUrl ? (
+        <Image source={{ uri: currentTrack.thumbnailUrl }} style={StyleSheet.absoluteFill} />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, styles.bgFallback]} />
+      )}
+      <BlurView intensity={72} tint="dark" style={StyleSheet.absoluteFill} />
+      <View style={[StyleSheet.absoluteFill, styles.scrim]} />
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn} activeOpacity={0.8}>
           <ChevronDown size={28} color={Colors.text} />
@@ -111,7 +173,39 @@ export default function AudioPlayerScreen() {
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}
       >
-        <TrackInfo track={currentTrack} size="large" />
+        <Animated.View
+          style={[
+            styles.artworkSection,
+            {
+              opacity: enterAnim,
+              transform: [
+                {
+                  translateY: enterAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [28, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Animated.View style={[styles.artworkCard, { transform: [{ translateX: artX }] }]} {...artPanResponder.panHandlers}>
+            {currentTrack?.thumbnailUrl ? (
+              <Image source={{ uri: currentTrack.thumbnailUrl }} style={styles.artworkImage} />
+            ) : (
+              <View style={styles.artworkFallback}>
+                <Music size={84} color={Colors.secondary} />
+              </View>
+            )}
+          </Animated.View>
+          <Text numberOfLines={1} style={styles.trackTitle}>
+            {currentTrack?.title ?? 'No track'}
+          </Text>
+          <Text numberOfLines={1} style={styles.trackArtist}>
+            {currentTrack?.artistOrSpeaker || 'Hikmah Audio'}
+          </Text>
+          <Text style={styles.swipeHint}>Swipe artwork to change track</Text>
+        </Animated.View>
 
         <View style={styles.actionRow}>
           <HikmahIconButton icon={<Heart size={20} color={Colors.muted} />} onPress={() => {}} size="sm" />
@@ -137,11 +231,8 @@ export default function AudioPlayerScreen() {
           />
         </View>
 
-        <View style={styles.progressSection}>
+        <BlurView intensity={36} tint="dark" style={styles.controlCard}>
           <ProgressBar position={position} duration={duration} onSeek={seekTo} />
-        </View>
-
-        <View style={styles.controlsSection}>
           <PlayerControls
             status={status}
             onTogglePlayPause={togglePlayPause}
@@ -150,7 +241,7 @@ export default function AudioPlayerScreen() {
             onSeekRelative={handleRelativeSeek}
             size="large"
           />
-        </View>
+        </BlurView>
 
         <View style={styles.modeRow}>
           <TouchableOpacity onPress={toggleShuffle} style={styles.modeBtn} activeOpacity={0.8}>
@@ -298,6 +389,74 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  bgFallback: {
+    backgroundColor: '#0B1F16',
+  },
+  scrim: {
+    backgroundColor: 'rgba(2, 6, 23, 0.55)',
+  },
+  artworkSection: {
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  artworkCard: {
+    width: 280,
+    height: 280,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    backgroundColor: Colors.card,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.45,
+    shadowRadius: 24,
+    elevation: 12,
+    marginBottom: Spacing.xl,
+  },
+  artworkImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  artworkFallback: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  },
+  trackTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: Colors.text,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+    paddingHorizontal: Spacing.lg,
+  },
+  trackArtist: {
+    fontSize: 15,
+    color: Colors.muted,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  swipeHint: {
+    fontSize: 11,
+    color: Colors.dim,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  controlCard: {
+    width: '100%',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -351,14 +510,6 @@ const styles = StyleSheet.create({
   },
   speedIconActive: {
     color: Colors.secondary,
-  },
-  progressSection: {
-    width: '100%',
-    marginTop: Spacing.md,
-  },
-  controlsSection: {
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.xl,
   },
   modeRow: {
     flexDirection: 'row',

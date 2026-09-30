@@ -20,6 +20,10 @@ interface GestureLayerProps {
   onSwipeUp?: () => void;
   onSwipeDown?: () => void;
   onSwipeProgress?: (direction: 'left' | 'right' | 'up' | 'down', delta: number) => void;
+  /** Continuous vertical drag; side tells which half of the screen started it. */
+  onVerticalSwipe?: (side: 'left' | 'right', deltaY: number) => void;
+  /** Fires when a pan gesture takes over (used to snapshot baseline values). */
+  onGestureStart?: () => void;
   children?: React.ReactNode;
 }
 
@@ -30,6 +34,8 @@ export const GestureLayer: React.FC<GestureLayerProps> = ({
   onSwipeUp,
   onSwipeDown,
   onSwipeProgress,
+  onVerticalSwipe,
+  onGestureStart,
   children,
 }) => {
   const tapCountRef = useRef(0);
@@ -90,15 +96,22 @@ export const GestureLayer: React.FC<GestureLayerProps> = ({
         onStartShouldSetPanResponder: () => false,
         onMoveShouldSetPanResponder: (_, gestureState) =>
           Math.abs(gestureState.dx) > 18 || Math.abs(gestureState.dy) > 18,
-        onPanResponderMove: (_, gestureState) => {
-          if (!onSwipeProgress) return;
-
+        onPanResponderGrant: () => {
+          onGestureStart?.();
+        },
+        onPanResponderMove: (event, gestureState) => {
           const { dx, dy } = gestureState;
 
           if (Math.abs(dx) > Math.abs(dy)) {
+            if (!onSwipeProgress) return;
             onSwipeProgress(dx > 0 ? 'right' : 'left', dx);
           } else {
-            onSwipeProgress(dy > 0 ? 'down' : 'up', dy);
+            if (onVerticalSwipe) {
+              const side = event.nativeEvent.locationX < SCREEN_WIDTH / 2 ? 'left' : 'right';
+              onVerticalSwipe(side, dy);
+            } else if (onSwipeProgress) {
+              onSwipeProgress(dy > 0 ? 'down' : 'up', dy);
+            }
           }
         },
         onPanResponderRelease: (_, gestureState) => {
@@ -108,7 +121,7 @@ export const GestureLayer: React.FC<GestureLayerProps> = ({
           }
         },
       }),
-    [onSwipeProgress, onSwipeUp, onSwipeDown]
+    [onSwipeProgress, onVerticalSwipe, onGestureStart, onSwipeUp, onSwipeDown]
   );
 
   return (

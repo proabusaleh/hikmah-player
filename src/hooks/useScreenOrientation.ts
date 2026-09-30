@@ -1,12 +1,16 @@
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useCallback, useState } from 'react';
+import { Platform } from 'react-native';
 
 const isUnsupportedOrientationError = (error: unknown): boolean => {
   const message = error instanceof Error ? error.message : String(error);
+  const normalized = message.toLowerCase();
 
   return (
-    message.includes('NotSupportedError') ||
-    message.includes('screen.orientation.lock() is not available on this device')
+    normalized.includes('notsupportederror') ||
+    normalized.includes('not supported') ||
+    normalized.includes('not available on this device') ||
+    normalized.includes('screen.orientation.lock')
   );
 };
 
@@ -16,6 +20,13 @@ export const useScreenOrientation = () => {
   const toggleFullscreen = useCallback(async () => {
     const nextValue = !isFullscreen;
     setIsFullscreen(nextValue);
+
+    // Orientation lock is a native capability. On web the underlying
+    // screen.orientation.lock() requires fullscreen + user gesture and
+    // otherwise rejects, so skip the native call entirely.
+    if (Platform.OS === 'web') {
+      return;
+    }
 
     try {
       await ScreenOrientation.lockAsync(
@@ -32,6 +43,10 @@ export const useScreenOrientation = () => {
 
   const resetToPortrait = useCallback(async () => {
     setIsFullscreen(false);
+
+    if (Platform.OS === 'web') {
+      return;
+    }
 
     try {
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);

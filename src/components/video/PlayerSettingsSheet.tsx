@@ -4,7 +4,6 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 
 import { BottomSheet } from '@/components/common/BottomSheet';
 import { BorderRadius, Colors, Spacing } from '@/constants/theme';
-import type { VideoQualityValue } from '@/services/video/videoEngine';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { AdvancedSettings } from './settings/AdvancedSettings';
 import { DisplaySettings } from './settings/DisplaySettings';
@@ -21,20 +20,9 @@ const TABS: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
 interface PlayerSettingsSheetProps {
   visible: boolean;
   onClose: () => void;
-  currentSpeed?: number;
-  currentQuality?: VideoQualityValue;
-  onSpeedChange?: (speed: number) => void;
-  onQualityChange?: (quality: VideoQualityValue) => void;
 }
 
-export const PlayerSettingsSheet: React.FC<PlayerSettingsSheetProps> = ({
-  visible,
-  onClose,
-  currentSpeed,
-  currentQuality,
-  onSpeedChange,
-  onQualityChange,
-}) => {
+export const PlayerSettingsSheet: React.FC<PlayerSettingsSheetProps> = ({ visible, onClose }) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('playback');
   const { isLoaded, loadSettings, playbackSpeed, quality } = useSettingsStore();
 
@@ -43,18 +31,6 @@ export const PlayerSettingsSheet: React.FC<PlayerSettingsSheetProps> = ({
       void loadSettings();
     }
   }, [visible, isLoaded, loadSettings]);
-
-  useEffect(() => {
-    if (onSpeedChange) {
-      onSpeedChange(currentSpeed ?? playbackSpeed);
-    }
-  }, [currentSpeed, onSpeedChange, playbackSpeed]);
-
-  useEffect(() => {
-    if (onQualityChange) {
-      onQualityChange(currentQuality ?? quality);
-    }
-  }, [currentQuality, onQualityChange, quality]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -90,7 +66,7 @@ export const PlayerSettingsSheet: React.FC<PlayerSettingsSheetProps> = ({
       </View>
 
       <View style={styles.storeHint}>
-        <Text style={styles.storeHintText}>Current: {currentSpeed ?? playbackSpeed}x · {currentQuality ?? quality}</Text>
+        <Text style={styles.storeHintText}>Current: {playbackSpeed}x · {quality}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} bounces={false}>

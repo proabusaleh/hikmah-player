@@ -157,7 +157,8 @@ class AudioService {
 
       this.startEndMonitor();
 
-      const duration = (this.player.duration ?? 0) * 1000;
+      const rawDuration = this.player.duration ?? 0;
+      const duration = Number.isFinite(rawDuration) ? rawDuration * 1000 : 0;
       return { duration };
     } catch (error) {
       console.error('[AudioService] Load failed:', error);
@@ -275,10 +276,14 @@ class AudioService {
     if (!this.player) return null;
 
     try {
+      // Native currentTime/duration can be NaN before metadata loads
+      // (common on web). Coerce to 0 so the progress bar gets sane values.
+      const rawPosition = this.player.currentTime ?? 0;
+      const rawDuration = this.player.duration ?? 0;
       return {
         isPlaying: this.player.playing,
-        position: (this.player.currentTime ?? 0) * 1000,
-        duration: (this.player.duration ?? 0) * 1000,
+        position: Number.isFinite(rawPosition) ? rawPosition * 1000 : 0,
+        duration: Number.isFinite(rawDuration) ? rawDuration * 1000 : 0,
         isBuffering: this.player.isBuffering ?? false,
         rate: this.player.playbackRate ?? this.rate,
         volume: this.player.volume ?? this.volume,

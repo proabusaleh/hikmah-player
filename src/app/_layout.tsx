@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { MiniPlayer } from '@/components/player/MiniPlayer';
+import { MediaPermissionGate } from '@/components/permissions/MediaPermissionGate';
 import { Colors } from '@/constants/theme';
 import { useNotifications } from '@/hooks/useNotifications';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -166,6 +167,7 @@ export default function RootLayout() {
           </Stack>
 
           {isReady && showMiniPlayer && <MiniPlayer />}
+          {isReady && <MediaPermissionGate />}
         </ThemeProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

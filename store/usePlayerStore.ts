@@ -309,6 +309,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   updateProgress: (position, duration) => {
+    const { position: prevPosition, duration: prevDuration } = get();
+    if (prevPosition === position && prevDuration === duration) return;
     set({ position, duration });
   },
 
