@@ -1,39 +1,71 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, Easing, Image, StyleSheet, Text, View } from 'react-native';
+import Constants from 'expo-constants';
 
 import { Colors, Spacing, Typography } from '@/constants/theme';
 import { StorageService } from '@/services/storage/storageService';
 
-const { height } = Dimensions.get('window');
+const { height, width } = Dimensions.get('window');
 
 export default function SplashScreen() {
   const router = useRouter();
-  const [scaleAnim] = useState(() => new Animated.Value(0.5));
-  const [fadeAnim] = useState(() => new Animated.Value(0));
-  const [subtitleFade] = useState(() => new Animated.Value(0));
+  const [logoScale] = useState(() => new Animated.Value(0.6));
+  const [logoFade] = useState(() => new Animated.Value(0));
+  const [textSlide] = useState(() => new Animated.Value(24));
+  const [textFade] = useState(() => new Animated.Value(0));
+  const [shineX] = useState(() => new Animated.Value(-160));
+  const [barX] = useState(() => new Animated.Value(-120));
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(scaleAnim, {
+      Animated.spring(logoScale, {
         toValue: 1,
         useNativeDriver: true,
-        damping: 12,
-        stiffness: 100,
+        damping: 13,
+        stiffness: 110,
       }),
-      Animated.timing(fadeAnim, {
+      Animated.timing(logoFade, {
         toValue: 1,
-        duration: 800,
+        duration: 700,
         useNativeDriver: true,
       }),
     ]).start();
 
-    Animated.timing(subtitleFade, {
-      toValue: 1,
-      duration: 600,
-      delay: 600,
+    Animated.parallel([
+      Animated.timing(textFade, {
+        toValue: 1,
+        duration: 600,
+        delay: 450,
+        useNativeDriver: true,
+      }),
+      Animated.timing(textSlide, {
+        toValue: 0,
+        duration: 600,
+        delay: 450,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Light sweep across the logo.
+    Animated.timing(shineX, {
+      toValue: width + 160,
+      duration: 1300,
+      delay: 700,
+      easing: Easing.inOut(Easing.ease),
       useNativeDriver: true,
     }).start();
+
+    // Indeterminate loading shimmer.
+    Animated.loop(
+      Animated.timing(barX, {
+        toValue: 120,
+        duration: 1100,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      })
+    ).start();
 
     const timer = setTimeout(async () => {
       try {
@@ -42,37 +74,54 @@ export default function SplashScreen() {
       } catch {
         router.replace('/(tabs)');
       }
-    }, 2500);
+    }, 2600);
 
     return () => clearTimeout(timer);
-  }, [router, scaleAnim, fadeAnim, subtitleFade]);
+  }, [router, logoScale, logoFade, textSlide, textFade, shineX, barX]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.glowCircle1} />
-      <View style={styles.glowCircle2} />
+      <View style={styles.glowTop} />
+      <View style={styles.glowBottom} />
+      <View style={styles.gridDot} />
 
       <Animated.View
         style={[
-          styles.logoContainer,
-          {
-            transform: [{ scale: scaleAnim }],
-            opacity: fadeAnim,
-          },
+          styles.logoWrap,
+          { opacity: logoFade, transform: [{ scale: logoScale }] },
         ]}
       >
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoIcon}>▶</Text>
+        <View style={styles.logoFrame}>
+          <Image
+            source={require('@/assets/icons/icon.png')}
+            style={styles.logoImage}
+            resizeMode="cover"
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.shine, { transform: [{ translateX: shineX }, { rotate: '18deg' }] }]}
+          />
         </View>
-        <Text style={styles.brandName}>Hikmah</Text>
-        <Text style={styles.brandSub}>Player</Text>
       </Animated.View>
 
-      <Animated.Text style={[styles.tagline, { opacity: subtitleFade }]}>
-        Illuminate Your Knowledge
-      </Animated.Text>
+      <Animated.View
+        style={[styles.brandBlock, { opacity: textFade, transform: [{ translateY: textSlide }] }]}
+      >
+        <Text style={styles.brandName}>HIKMAH</Text>
+        <View style={styles.brandRule}>
+          <View style={styles.ruleLine} />
+          <Text style={styles.brandSub}>PLAYER</Text>
+          <View style={styles.ruleLine} />
+        </View>
+        <Text style={styles.tagline}>Illuminate Your Knowledge</Text>
+      </Animated.View>
 
-      <Text style={styles.version}>v1.0.0</Text>
+      <View style={styles.footer}>
+        <View style={styles.loadTrack}>
+          <Animated.View style={[styles.loadFill, { transform: [{ translateX: barX }] }]} />
+        </View>
+        <Text style={styles.version}>v{Constants.expoConfig?.version ?? '1.1.0'}</Text>
+      </View>
     </View>
   );
 }
@@ -80,72 +129,117 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#020617',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  glowCircle1: {
+  glowTop: {
     position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    top: height * 0.15,
-    left: -80,
+    width: 420,
+    height: 420,
+    borderRadius: 210,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    top: -120,
+    alignSelf: 'center',
   },
-  glowCircle2: {
+  glowBottom: {
     position: 'absolute',
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    backgroundColor: 'rgba(52, 211, 153, 0.06)',
-    bottom: height * 0.2,
-    right: -60,
+    width: 340,
+    height: 340,
+    borderRadius: 170,
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    bottom: height * 0.08,
+    left: -100,
   },
-  logoContainer: {
+  gridDot: {
+    ...StyleSheet.absoluteFill,
+    opacity: 0.5,
+    backgroundColor: 'transparent',
+  },
+  logoWrap: {
     alignItems: 'center',
   },
-  logoCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: Colors.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-    shadowColor: Colors.secondary,
+  logoFrame: {
+    width: 168,
+    height: 168,
+    borderRadius: 40,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.35)',
+    shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOpacity: 0.55,
+    shadowRadius: 32,
+    elevation: 16,
+    backgroundColor: '#0F172A',
   },
-  logoIcon: {
-    fontSize: 36,
-    color: Colors.white,
-    marginLeft: 4,
+  logoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  shine: {
+    position: 'absolute',
+    top: -40,
+    bottom: -40,
+    width: 56,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+  },
+  brandBlock: {
+    alignItems: 'center',
+    marginTop: Spacing.xxl,
   },
   brandName: {
     ...Typography.h1,
-    fontSize: 38,
+    fontSize: 44,
+    letterSpacing: 8,
     color: Colors.text,
-    letterSpacing: 1,
+    marginLeft: 8,
+  },
+  brandRule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 6,
+  },
+  ruleLine: {
+    width: 44,
+    height: 1,
+    backgroundColor: 'rgba(52, 211, 153, 0.5)',
   },
   brandSub: {
-    ...Typography.h3,
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 6,
     color: Colors.secondary,
-    marginTop: -4,
-    letterSpacing: 4,
-    textTransform: 'uppercase',
+    marginLeft: 6,
   },
   tagline: {
     ...Typography.body,
     color: Colors.muted,
-    marginTop: Spacing.xxl,
     fontStyle: 'italic',
+    marginTop: Spacing.md,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: Spacing.xxxl,
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  loadTrack: {
+    width: 120,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    overflow: 'hidden',
+  },
+  loadFill: {
+    width: 48,
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: Colors.secondary,
   },
   version: {
     ...Typography.caption,
-    position: 'absolute',
-    bottom: Spacing.xxxl,
+    color: Colors.dim,
   },
 });
