@@ -23,7 +23,6 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
         <Text style={Typography.h4}>{title}</Text>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
-
       {actionLabel && onAction && (
         <TouchableOpacity onPress={onAction} style={styles.actionButton} activeOpacity={0.7}>
           <Text style={styles.actionText}>{actionLabel}</Text>

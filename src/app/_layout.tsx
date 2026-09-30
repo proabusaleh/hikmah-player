@@ -17,6 +17,7 @@ import { perfMonitor } from '@/services/performance/performanceMonitor';
 import { BackgroundAudioService } from '@/services/playback/backgroundAudioService';
 import { playerLifecycle } from '@/services/playback/playerLifecycle';
 import { downloadQueue } from '@/services/storage/downloadQueue';
+import { UpdateService } from '@/services/updates/updateService';
 import { useContinueWatchingStore } from '@/store/useContinueWatchingStore';
 import { useLibraryStore } from '@/store/useLibraryStore';
 import { usePlayerStore } from '@/store/usePlayerStore';
@@ -101,6 +102,17 @@ export default function RootLayout() {
           if (__DEV__) perfMonitor.logReport();
         });
       }, 2000);
+
+      // ── Phase 4: Auto-update (silent download when enabled; the update
+      // applies on the next cold start) ──
+      setTimeout(() => {
+        if (!useSettingsStore.getState().autoUpdateEnabled) return;
+        void UpdateService.checkForUpdate()
+          .then((available) => {
+            if (available) void UpdateService.downloadUpdate().catch(() => {});
+          })
+          .catch(() => {});
+      }, 8000);
     };
 
     void init();

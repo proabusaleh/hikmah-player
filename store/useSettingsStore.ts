@@ -20,6 +20,7 @@ export interface PlayerSettings {
   autoPlayNext: boolean;
   rememberPosition: boolean;
   doubleTapToSeek: boolean;
+  autoUpdateEnabled: boolean;
 }
 
 interface SettingsState extends PlayerSettings {
@@ -43,6 +44,7 @@ const DEFAULT_SETTINGS: PlayerSettings = {
   autoPlayNext: true,
   rememberPosition: true,
   doubleTapToSeek: true,
+  autoUpdateEnabled: true,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -77,6 +79,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       autoPlayNext: state.autoPlayNext,
       rememberPosition: state.rememberPosition,
       doubleTapToSeek: state.doubleTapToSeek,
+      autoUpdateEnabled: state.autoUpdateEnabled,
     };
 
     await StorageService.setItem(StorageKeys.SETTINGS, settingsToSave);

@@ -1,5 +1,5 @@
 import { Film, Music, Trash2 } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { Colors } from '@/constants/colors';
@@ -18,6 +18,7 @@ export const DownloadedItemCard: React.FC<DownloadedItemCardProps> = ({
   onDelete,
 }) => {
   const isVideo = item.type === 'video';
+  const [delPressed, setDelPressed] = useState(false);
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.75}>
@@ -39,9 +40,17 @@ export const DownloadedItemCard: React.FC<DownloadedItemCardProps> = ({
         </Text>
       </View>
 
-      <TouchableOpacity onPress={onDelete} style={styles.deleteButton} activeOpacity={0.7}>
+      <View
+        style={[styles.deleteButton, delPressed && styles.deleteButtonPressed]}
+        onStartShouldSetResponder={() => true}
+        onResponderGrant={() => setDelPressed(true)}
+        onResponderRelease={() => {
+          setDelPressed(false);
+          onDelete();
+        }}
+      >
         <Trash2 size={18} color={Colors.dark.danger} />
-      </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -82,5 +91,8 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 8,
+  },
+  deleteButtonPressed: {
+    opacity: 0.6,
   },
 });

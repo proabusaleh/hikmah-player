@@ -1,7 +1,8 @@
-import { Bell, BellRing, Download, Globe, Info, ListMusic, Moon, Music, Settings2, Shield, SkipForward, Sparkles, Trash2, Volume2, Wifi, Zap } from 'lucide-react-native';
+import { Bell, BellRing, Download, Globe, Info, ListMusic, Moon, Music, RefreshCw, Settings2, Shield, SkipForward, Sparkles, Trash2, Volume2, Wifi, Zap } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import Constants from 'expo-constants';
 
 import { HikmahCard } from '@/components/common/HikmahCard';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -9,6 +10,8 @@ import { SettingsRow } from '@/components/common/SettingsRow';
 import { Colors, Spacing } from '@/constants/theme';
 import { changeLanguage, getSupportedLanguages } from '@/services/i18n/i18n';
 import { NotificationService } from '@/services/notifications/notificationService';
+import { UpdateService } from '@/services/updates/updateService';
+import { useSettingsStore } from '@/store/useSettingsStore';
 import { useSmartPlaybackStore } from '@/store/useSmartPlaybackStore';
 
 /**
@@ -32,6 +35,10 @@ export default function SettingsScreen() {
 
   const [notificationsOn, setNotificationsOn] = useState(() => NotificationService.isEnabled());
   const [systemPermission, setSystemPermission] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState('');
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const autoUpdateEnabled = useSettingsStore((s) => s.autoUpdateEnabled);
+  const updateSetting = useSettingsStore((s) => s.updateSetting);
   const { t, i18n } = useTranslation();
   const languages = getSupportedLanguages();
 
@@ -89,6 +96,63 @@ export default function SettingsScreen() {
         { text: 'Clear', style: 'destructive' },
       ],
     );
+  };
+
+  const handleCheckUpdates = () => {
+    if (checkingUpdates) return;
+    if (!UpdateService.isCapable()) {
+      setUpdateStatus('Updates work in release builds');
+      return;
+    }
+    setCheckingUpdates(true);
+    setUpdateStatus('Checking…');
+    void (async () => {
+      let available = false;
+      try {
+        available = await UpdateService.checkForUpdate();
+      } catch {
+        setUpdateStatus('Check failed, try again');
+        setCheckingUpdates(false);
+        return;
+      }
+      if (!available) {
+        setUpdateStatus('You are up to date');
+        setCheckingUpdates(false);
+        return;
+      }
+      Alert.alert(
+        'Update available',
+        'A new version of Hikmah Player is ready.',
+        [
+          {
+            text: 'Later',
+            style: 'cancel',
+            onPress: () => {
+              setUpdateStatus('Will update on restart');
+              setCheckingUpdates(false);
+              void UpdateService.downloadUpdate().catch(() => {});
+            },
+          },
+          {
+            text: 'Download & Restart',
+            onPress: () => {
+              setUpdateStatus('Downloading…');
+              void (async () => {
+                try {
+                  await UpdateService.downloadUpdate();
+                  setUpdateStatus('Restarting…');
+                  await UpdateService.applyUpdate();
+                } catch {
+                  setUpdateStatus('Download failed, try again');
+                  setCheckingUpdates(false);
+                }
+              })();
+            },
+          },
+        ],
+        { onDismiss: () => setCheckingUpdates(false) }
+      );
+    })();
   };
 
   return (
@@ -262,9 +326,32 @@ export default function SettingsScreen() {
       </HikmahCard>
 
       <View style={styles.sectionGap} />
+      <SectionHeader title="App Updates" />
+      <HikmahCard variant="bordered" padding="xs" style={styles.card}>
+        <SettingsRow
+          icon={<Info size={18} color={Colors.muted} />}
+          label="Version"
+          value={Constants.expoConfig?.version ?? '1.1.0'}
+        />
+        <SettingsRow
+          icon={<Zap size={18} color={Colors.secondary} />}
+          label="Auto-update"
+          description="Download new versions automatically"
+          isToggle
+          toggleValue={autoUpdateEnabled}
+          onToggle={(value) => updateSetting('autoUpdateEnabled', value)}
+        />
+        <SettingsRow
+          icon={<RefreshCw size={18} color={Colors.info} />}
+          label="Check for updates"
+          description={checkingUpdates ? 'Working…' : updateStatus || 'Get the latest version'}
+          onPress={handleCheckUpdates}
+        />
+      </HikmahCard>
+
+      <View style={styles.sectionGap} />
       <SectionHeader title="About" />
       <HikmahCard variant="bordered" padding="xs" style={styles.card}>
-        <SettingsRow icon={<Info size={18} color={Colors.muted} />} label="Version" value="1.0.0" />
         <SettingsRow icon={<Shield size={18} color={Colors.secondary} />} label="Privacy Policy" onPress={() => {}} />
       </HikmahCard>
 

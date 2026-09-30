@@ -58,6 +58,7 @@ export const NotificationService = {
    * Request notification permissions (no-op on simulators).
    */
   async requestPermissions(): Promise<boolean> {
+    if (Platform.OS === 'web') return false;
     if (!Device.isDevice) {
       console.warn('[Notifications] Notifications require a physical device');
       return false;
@@ -215,23 +216,34 @@ export const NotificationService = {
   },
 
   /**
-   * Dismiss a specific notification.
+   * Dismiss a specific notification (no-op where unsupported, e.g. web).
    */
   async dismissNotification(notificationId: string): Promise<void> {
-    await Notifications.dismissNotificationAsync(notificationId);
+    if (Platform.OS === 'web') return;
+    try {
+      await Notifications.dismissNotificationAsync(notificationId);
+    } catch {
+      // Non-critical.
+    }
   },
 
   /**
-   * Dismiss all notifications.
+   * Dismiss all notifications (no-op where unsupported, e.g. web).
    */
   async dismissAll(): Promise<void> {
-    await Notifications.dismissAllNotificationsAsync();
+    if (Platform.OS === 'web') return;
+    try {
+      await Notifications.dismissAllNotificationsAsync();
+    } catch {
+      // Non-critical.
+    }
   },
 
   /**
    * Get notification permission status.
    */
   async getPermissionStatus(): Promise<boolean> {
+    if (Platform.OS === 'web') return false;
     const { status } = await Notifications.getPermissionsAsync();
     return status === 'granted';
   },

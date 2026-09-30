@@ -1,5 +1,5 @@
 import { Heart, Music, Pause } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
@@ -25,6 +25,8 @@ export const AudioCard: React.FC<AudioCardProps> = ({
   onFavorite,
   rightAction,
 }) => {
+  const [favPressed, setFavPressed] = useState(false);
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -54,19 +56,21 @@ export const AudioCard: React.FC<AudioCardProps> = ({
       </View>
 
       {onFavorite && (
-        <TouchableOpacity
-          onPress={onFavorite}
-          style={styles.actionBtn}
-          activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel={isFavorite ? `Remove ${item.title} from favorites` : `Add ${item.title} to favorites`}
+        <View
+          style={[styles.actionBtn, favPressed && styles.actionBtnPressed]}
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={() => setFavPressed(true)}
+          onResponderRelease={() => {
+            setFavPressed(false);
+            onFavorite();
+          }}
         >
           <Heart
             size={18}
             color={isFavorite ? Colors.danger : Colors.dim}
             fill={isFavorite ? Colors.danger : Colors.transparent}
           />
-        </TouchableOpacity>
+        </View>
       )}
 
       {rightAction}
@@ -123,5 +127,8 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     padding: Spacing.sm,
+  },
+  actionBtnPressed: {
+    opacity: 0.6,
   },
 });

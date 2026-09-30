@@ -32,25 +32,36 @@ export const MediaNotification = {
             ? 'Loading...'
             : 'Stopped';
 
-    await Notifications.scheduleNotificationAsync({
-      identifier: MEDIA_NOTIFICATION_ID,
-      content: {
-        title: track.title,
-        body: `${track.artistOrSpeaker || 'Hikmah Player'} • ${statusText}`,
-        categoryIdentifier: NotificationCategories.MEDIA_CONTROLS,
-        data: { type: 'media', mediaId: track.id, action: 'open_player' },
-        color: '#10B981',
-        sticky: isPlaying,
-        autoDismiss: false,
-      },
-      trigger: { channelId: NotificationChannels.MEDIA_PLAYBACK },
-    });
+    try {
+      await Notifications.scheduleNotificationAsync({
+        identifier: MEDIA_NOTIFICATION_ID,
+        content: {
+          title: track.title,
+          body: `${track.artistOrSpeaker || 'Hikmah Player'} • ${statusText}`,
+          categoryIdentifier: NotificationCategories.MEDIA_CONTROLS,
+          data: { type: 'media', mediaId: track.id, action: 'open_player' },
+          color: '#10B981',
+          sticky: isPlaying,
+          autoDismiss: false,
+        },
+        trigger: { channelId: NotificationChannels.MEDIA_PLAYBACK },
+      });
+    } catch {
+      // Notifications are non-critical: never crash playback.
+    }
   },
 
   /**
    * Dismiss the media notification.
+   * No-op off Android: `dismissNotificationAsync` throws UnavailabilityError
+   * on web (no native NotificationPresenter module).
    */
   async dismiss(): Promise<void> {
-    await Notifications.dismissNotificationAsync(MEDIA_NOTIFICATION_ID);
+    if (Platform.OS !== 'android') return;
+    try {
+      await Notifications.dismissNotificationAsync(MEDIA_NOTIFICATION_ID);
+    } catch {
+      // Non-critical: never crash playback.
+    }
   },
 };

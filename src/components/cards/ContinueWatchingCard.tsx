@@ -1,5 +1,5 @@
 import { Clock, Film, Music, Play, X } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
@@ -24,6 +24,7 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({
   const progressWidth = `${Math.min(item.progressPercent, 100)}%` as const;
   const progressColor =
     item.progressPercent < 30 ? Colors.secondary : item.progressPercent < 70 ? Colors.accent : Colors.warning;
+  const [dismissPressed, setDismissPressed] = useState(false);
 
   return (
     <TouchableOpacity
@@ -76,16 +77,17 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({
       </View>
 
       {onDismiss && (
-        <TouchableOpacity
-          style={styles.dismissBtn}
-          onPress={(event) => {
-            event.stopPropagation();
+        <View
+          style={[styles.dismissBtn, dismissPressed && styles.dismissBtnPressed]}
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={() => setDismissPressed(true)}
+          onResponderRelease={() => {
+            setDismissPressed(false);
             onDismiss();
           }}
-          activeOpacity={0.6}
         >
           <X size={14} color={Colors.dim} />
-        </TouchableOpacity>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -203,5 +205,8 @@ const styles = StyleSheet.create({
   dismissBtn: {
     padding: Spacing.sm,
     alignSelf: 'flex-start',
+  },
+  dismissBtnPressed: {
+    opacity: 0.6,
   },
 });

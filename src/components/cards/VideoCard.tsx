@@ -1,5 +1,5 @@
 import { Clock, Download, Play } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BorderRadius, Colors, Spacing, Typography } from '@/constants/theme';
@@ -22,6 +22,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   variant = 'horizontal',
 }) => {
   const isGrid = variant === 'grid';
+  const [dlPressed, setDlPressed] = useState(false);
 
   return (
     <TouchableOpacity
@@ -63,9 +64,17 @@ export const VideoCard: React.FC<VideoCardProps> = ({
       </View>
 
       {onDownload && (
-        <TouchableOpacity onPress={onDownload} style={styles.downloadBtn} activeOpacity={0.7}>
+        <View
+          style={[styles.downloadBtn, dlPressed && styles.downloadBtnPressed]}
+          onStartShouldSetResponder={() => true}
+          onResponderGrant={() => setDlPressed(true)}
+          onResponderRelease={() => {
+            setDlPressed(false);
+            onDownload();
+          }}
+        >
           <Download size={18} color={isDownloaded ? Colors.accent : Colors.muted} />
-        </TouchableOpacity>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -165,5 +174,8 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     alignSelf: 'center',
     marginRight: Spacing.sm,
+  },
+  downloadBtnPressed: {
+    opacity: 0.6,
   },
 });

@@ -29,7 +29,7 @@ export const ContentNotifications = {
     bytesDownloaded: number,
     totalBytes: number
   ): Promise<void> {
-    if (!NotificationService.isEnabled()) return;
+    if (Platform.OS === 'web' || !NotificationService.isEnabled()) return;
 
     const percent = Math.round(progress * 100);
     const last = lastProgressPercent.get(mediaId);
@@ -62,8 +62,13 @@ export const ContentNotifications = {
     mediaType: 'audio' | 'video',
     fileSizeMB: number
   ): Promise<void> {
+    if (Platform.OS === 'web') return;
     lastProgressPercent.delete(mediaId);
-    await Notifications.dismissNotificationAsync(`download-progress-${mediaId}`);
+    try {
+      await Notifications.dismissNotificationAsync(`download-progress-${mediaId}`);
+    } catch {
+      // Non-critical (unsupported on web).
+    }
     if (!NotificationService.isEnabled()) return;
 
     const typeEmoji = mediaType === 'video' ? '🎬' : '🎵';
@@ -85,8 +90,13 @@ export const ContentNotifications = {
    * Show download failed notification.
    */
   async showDownloadFailed(mediaId: string, title: string, error: string): Promise<void> {
+    if (Platform.OS === 'web') return;
     lastProgressPercent.delete(mediaId);
-    await Notifications.dismissNotificationAsync(`download-progress-${mediaId}`);
+    try {
+      await Notifications.dismissNotificationAsync(`download-progress-${mediaId}`);
+    } catch {
+      // Non-critical (unsupported on web).
+    }
     if (!NotificationService.isEnabled()) return;
 
     await Notifications.scheduleNotificationAsync({
@@ -105,7 +115,7 @@ export const ContentNotifications = {
    * Show batch download summary.
    */
   async showBatchDownloadSummary(completed: number, failed: number, total: number): Promise<void> {
-    if ((completed === 0 && failed === 0) || !NotificationService.isEnabled()) return;
+    if (Platform.OS === 'web' || (completed === 0 && failed === 0) || !NotificationService.isEnabled()) return;
 
     const parts: string[] = [];
     if (completed > 0) parts.push(`✅ ${completed} completed`);
@@ -136,7 +146,7 @@ export const ContentNotifications = {
     category: string,
     contentId: string
   ): Promise<void> {
-    if (!NotificationService.isEnabled()) return;
+    if (Platform.OS === 'web' || !NotificationService.isEnabled()) return;
 
     await Notifications.scheduleNotificationAsync({
       identifier: `new-content-${contentId}-${Date.now()}`,
@@ -160,7 +170,7 @@ export const ContentNotifications = {
     contentId: string,
     triggerDate: Date
   ): Promise<void> {
-    if (!NotificationService.isEnabled()) return;
+    if (Platform.OS === 'web' || !NotificationService.isEnabled()) return;
 
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -189,7 +199,7 @@ export const ContentNotifications = {
     changeDescription: string,
     playlistId: string
   ): Promise<void> {
-    if (!NotificationService.isEnabled()) return;
+    if (Platform.OS === 'web' || !NotificationService.isEnabled()) return;
 
     await Notifications.scheduleNotificationAsync({
       identifier: `playlist-${playlistId}-${Date.now()}`,
