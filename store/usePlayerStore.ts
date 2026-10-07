@@ -119,6 +119,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({
       currentTrack: null,
       currentIndex: -1,
+      queue: [],
+      originalQueue: [],
       status: 'stopped',
       position: 0,
       duration: 0,
@@ -195,6 +197,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       set({
         currentTrack: null,
         currentIndex: -1,
+        queue: [],
+        originalQueue: [],
         status: 'stopped',
         position: 0,
         duration: 0,
@@ -221,6 +225,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       set({
         currentTrack: null,
         currentIndex: -1,
+        queue: [],
+        originalQueue: [],
         status: 'stopped',
         position: 0,
         duration: 0,

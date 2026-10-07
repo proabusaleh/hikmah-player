@@ -200,6 +200,7 @@ class AudioService {
     try {
       this.player.pause();
       await this.player.seekTo(0);
+      this.endEmittedForUri = null;
       this.emit('stop');
     } catch (error) {
       console.error('[AudioService] Stop failed:', error);
@@ -296,6 +297,7 @@ class AudioService {
 
   async unload(): Promise<void> {
     this.stopEndMonitor();
+    this.endEmittedForUri = null;
     if (this.player) {
       try {
         this.player.remove();
