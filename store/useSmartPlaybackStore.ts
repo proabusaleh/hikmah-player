@@ -76,6 +76,7 @@ interface SmartPlaybackState {
     allMedia: MediaItem[],
     progressRecords: PlaybackProgress[]
   ) => void;
+  clearSmartQueue: () => void;
   getNextSmartItem: () => SmartQueueItem | null;
 
   // Actions — Resume
@@ -261,6 +262,10 @@ export const useSmartPlaybackStore = create<SmartPlaybackState>((set, get) => ({
     );
 
     set({ smartQueue: queue, isSmartQueueActive: true });
+  },
+
+  clearSmartQueue: () => {
+    set({ smartQueue: [], isSmartQueueActive: false });
   },
 
   getNextSmartItem: () => {

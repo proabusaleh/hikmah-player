@@ -116,7 +116,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   stop: async () => {
     await audioService.stop();
-    set({ status: 'stopped', position: 0 });
+    set({
+      currentTrack: null,
+      currentIndex: -1,
+      status: 'stopped',
+      position: 0,
+      duration: 0,
+    });
   },
 
   seekTo: async (positionMs) => {

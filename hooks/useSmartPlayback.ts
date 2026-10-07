@@ -31,6 +31,7 @@ export const useSmartPlayback = () => {
     updateConfig,
     setUserQuality,
     recalculateQuality,
+    clearSmartQueue,
   } = useSmartPlaybackStore();
 
   const { currentTrack, position, duration, status } = usePlayerStore();
@@ -75,29 +76,40 @@ export const useSmartPlayback = () => {
 
   // ── Generate Smart Queue when current track changes ──
   useEffect(() => {
-    if (currentTrack && config.smartQueue && allMedia.length > 0) {
-      // Engine works with MediaItem (durations in seconds, matching progress records)
-      const libraryAsMedia: MediaItem[] = allMedia.map((m) => ({
-        id: m.id,
-        title: m.title,
-        url: m.filePath,
-        duration: m.duration,
-        type: m.mediaType,
-        addedAt: m.addedAt,
-        thumbnailUrl: m.thumbnail,
-      }));
-      generateSmartQueue(currentTrack, libraryAsMedia, progressRecords);
+    if (!currentTrack || !config.smartQueue || allMedia.length === 0) {
+      clearSmartQueue();
+      return;
     }
+
+    const libraryAsMedia: MediaItem[] = allMedia.map((m) => ({
+      id: m.id,
+      title: m.title,
+      url: m.filePath,
+      duration: m.duration,
+      type: m.mediaType,
+      addedAt: m.addedAt,
+      thumbnailUrl: m.thumbnail,
+    }));
+
+    generateSmartQueue(currentTrack, libraryAsMedia, progressRecords);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTrack, config.smartQueue]);
+  }, [currentTrack, config.smartQueue, allMedia, progressRecords, generateSmartQueue, clearSmartQueue]);
 
   // ── Check Resume on New Track ──
   useEffect(() => {
-    if (currentTrack && config.autoResume) {
-      checkResume(currentTrack.id, progressRecords);
+    if (!currentTrack) {
+      dismissResume();
+      return;
     }
+
+    if (!config.autoResume) {
+      dismissResume();
+      return;
+    }
+
+    checkResume(currentTrack.id, progressRecords);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTrack, config.autoResume]);
+  }, [currentTrack, config.autoResume, progressRecords, checkResume, dismissResume]);
 
   // ── Handle Skip (returns target in seconds) ──
   const handleSkip = useCallback((): number | null => {
