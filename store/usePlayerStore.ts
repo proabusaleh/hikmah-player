@@ -185,7 +185,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   nextTrack: async () => {
     const { queue, currentIndex, repeatMode } = get();
-    if (queue.length === 0) return;
+    if (queue.length === 0) {
+      set({
+        currentTrack: null,
+        currentIndex: -1,
+        status: 'stopped',
+        position: 0,
+        duration: 0,
+      });
+      return;
+    }
 
     if (repeatMode === 'one') {
       await audioService.seek(0);
@@ -202,7 +211,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       set({ currentIndex: 0 });
       await get().loadAndPlay(queue[0]);
     } else {
-      set({ status: 'stopped', position: 0 });
+      await audioService.stop();
+      set({
+        currentTrack: null,
+        currentIndex: -1,
+        status: 'stopped',
+        position: 0,
+        duration: 0,
+      });
     }
   },
 
