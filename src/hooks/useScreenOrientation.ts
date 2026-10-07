@@ -18,15 +18,11 @@ export const useScreenOrientation = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const toggleFullscreen = useCallback(async () => {
-    const nextValue = !isFullscreen;
-    setIsFullscreen(nextValue);
-
-    // Orientation lock is a native capability. On web the underlying
-    // screen.orientation.lock() requires fullscreen + user gesture and
-    // otherwise rejects, so skip the native call entirely.
-    if (Platform.OS === 'web') {
+    if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
       return;
     }
+
+    const nextValue = !isFullscreen;
 
     try {
       await ScreenOrientation.lockAsync(
@@ -34,26 +30,29 @@ export const useScreenOrientation = () => {
           ? ScreenOrientation.OrientationLock.LANDSCAPE
           : ScreenOrientation.OrientationLock.PORTRAIT_UP
       );
+      setIsFullscreen(nextValue);
     } catch (error) {
       if (!isUnsupportedOrientationError(error)) {
         console.error('[ScreenOrientation] Failed to toggle orientation:', error);
       }
+      // Preserve the UI state when the native lock fails on some devices.
+      setIsFullscreen(isFullscreen);
     }
   }, [isFullscreen]);
 
   const resetToPortrait = useCallback(async () => {
-    setIsFullscreen(false);
-
-    if (Platform.OS === 'web') {
+    if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
       return;
     }
 
     try {
       await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+      setIsFullscreen(false);
     } catch (error) {
       if (!isUnsupportedOrientationError(error)) {
         console.error('[ScreenOrientation] Reset failed:', error);
       }
+      setIsFullscreen(false);
     }
   }, []);
 
